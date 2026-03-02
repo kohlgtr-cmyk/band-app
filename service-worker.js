@@ -1,24 +1,37 @@
-const CACHE_NAME = 'banda-app-v1';
+const CACHE_NAME = 'echodome-v2'; // ← mudei para v2 para forçar atualização
 
-// Arquivos da interface (sempre em cache)
 const STATIC_FILES = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/data.js',
-  '/js/app.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './css/style.css',
+  './js/data.js',
+  './js/app.js',
+  './manifest.json',
+  // Adicione aqui os arquivos de imagem também:
+  './assets/img/full-band-logo.jpg',
 ];
 
-// Instala e cacheia os arquivos estáticos
+// Músicas para pré-cachear (serão baixadas em background na instalação)
+const MUSIC_FILES = [
+  './assets/music/love-story.mp3',
+  './assets/music/between-the-lines.mp3',
+  './assets/music/eu-nao-queria-sentir-assim.mp3',
+  './assets/music/echos.mp3',
+  './assets/music/i-feel-stuck.mp3',
+];
+
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_FILES))
+    caches.open(CACHE_NAME).then(async cache => {
+      // Cacheia interface imediatamente
+      await cache.addAll(STATIC_FILES);
+      // Tenta cachear músicas em background (não bloqueia instalação)
+      cache.addAll(MUSIC_FILES).catch(() => {});
+    })
   );
   self.skipWaiting();
 });
 
-// Remove caches antigos
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -28,19 +41,27 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Estratégia: Cache primeiro, rede como fallback
-// Para músicas (MP3): cacheia ao carregar
 self.addEventListener('fetch', e => {
+  // Ignora requisições que não são GET
+  if (e.request.method !== 'GET') return;
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
+
       return fetch(e.request).then(response => {
-        // Cacheia MP3s e imagens automaticamente
-        if (e.request.url.match(/\.(mp3|jpg|jpeg|png|webp|gif)$/)) {
+        // Só cacheia respostas válidas
+        if (!response || response.status !== 200) return response;
+
+        // Cacheia MP3s, imagens e fontes ao carregar
+        if (e.request.url.match(/\.(mp3|jpg|jpeg|png|webp|gif|woff2?)$/)) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
         }
         return response;
+      }).catch(() => {
+        // Offline e não tem cache: retorna página principal como fallback
+        return caches.match('./index.html');
       });
     })
   );
