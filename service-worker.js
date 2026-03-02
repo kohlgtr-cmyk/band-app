@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v2'; // ← mudei para v2 para forçar atualização
+const CACHE_NAME = 'echodome-v3'; // ← mudei para v2 para forçar atualização
 
 const STATIC_FILES = [
   './',
