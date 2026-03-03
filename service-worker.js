@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v4'; // ← mudei para v2 para forçar atualização
+const CACHE_NAME = 'echodome-v5'; // Mude o nome para forçar o celular a atualizar
 
 const STATIC_FILES = [
   './',
