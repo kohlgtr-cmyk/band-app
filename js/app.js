@@ -190,6 +190,32 @@ function updatePlayerUI() {
   if (album && album.cover) coverEl.innerHTML = `<img src="${album.cover}" alt="" />`;
   else coverEl.innerHTML = `<span>${album ? album.coverEmoji || '🎵' : '🎵'}</span>`;
   updatePlayIcon();
+    if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: BAND_NAME,
+      album: album ? album.name : '',
+      artwork: album && album.cover ? [
+        { src: album.cover, sizes: '512x512', type: 'image/jpeg' }
+      ] : []
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause();
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      prevTrack();
+    });
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      nextTrack();
+    });
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime) audio.currentTime = details.seekTime;
+    });
+  }
 }
 
 function updatePlayIcon() {

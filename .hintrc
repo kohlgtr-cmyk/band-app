@@ -14,5 +14,11 @@
     "no-inline-styles": "off",
     "manifest-file-extension": "off",
     "apple-touch-icons": "off"
-  }
+  },
+  "browserslist": [
+    "defaults",
+    "not ie 11",
+    "not ios_saf <= 26.1",
+    "not safari <= 26.2"
+  ]
 }
