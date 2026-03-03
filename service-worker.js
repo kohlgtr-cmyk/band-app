@@ -1,16 +1,26 @@
-const CACHE_NAME = 'echodome-v5'; // Mude o nome para forçar o celular a atualizar
+const CACHE_NAME = 'echodome-fix-v1';
 
+// LISTA REDUZIDA: Coloque apenas o essencial para o app abrir
 const STATIC_FILES = [
   './',
   './index.html',
-  './css/style.css',
-  './js/data.js',
-  './js/app.js',
   './manifest.json',
-  './assets/img/icon-192.png',
-  './assets/img/icon-512.png'
+  './js/app.js',
+  './js/data.js'
 ];
 
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      // Usamos map para tentar baixar um por um. 
+      // Se um falhar, os outros ainda são salvos.
+      return Promise.allSettled(
+        STATIC_FILES.map(file => cache.add(file))
+      );
+    })
+  );
+  self.skipWaiting();
+});
 // Músicas para pré-cachear (serão baixadas em background na instalação)
 const MUSIC_FILES = [
   './assets/music/love-story.mp3',
