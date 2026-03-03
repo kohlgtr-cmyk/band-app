@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v3'; // ← mudei para v2 para forçar atualização
+const CACHE_NAME = 'echodome-v4'; // ← mudei para v2 para forçar atualização
 
 const STATIC_FILES = [
   './',
@@ -7,8 +7,8 @@ const STATIC_FILES = [
   './js/data.js',
   './js/app.js',
   './manifest.json',
-  // Adicione aqui os arquivos de imagem também:
-  './assets/img/full-band-logo.jpg',
+  './assets/img/icon-192.png',
+  './assets/img/icon-512.png'
 ];
 
 // Músicas para pré-cachear (serão baixadas em background na instalação)
