@@ -1,12 +1,14 @@
-const CACHE_NAME = 'echodome-fix-v1';
+const CACHE_NAME = 'echodome-v10'; // Aumente o número para forçar o browser a atualizar
 
-// LISTA REDUZIDA: Coloque apenas o essencial para o app abrir
 const STATIC_FILES = [
   './',
   './index.html',
-  './manifest.json',
+  './css/style.css',
+  './js/data.js',
   './js/app.js',
-  './js/data.js'
+  './manifest.json',
+  './assets/img/icon-192.png',
+  './assets/img/icon-512.png'
 ];
 
 self.addEventListener('install', e => {
