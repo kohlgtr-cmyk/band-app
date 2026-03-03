@@ -2,26 +2,25 @@
   "name": "EchoDome Band",
   "short_name": "EchoDome",
   "description": "App oficial da EchoDome Band",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#121212",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
-  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "assets/img/full-band-logo.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/img/full-band-logo.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
