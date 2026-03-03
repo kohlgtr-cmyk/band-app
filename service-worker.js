@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v12'; // Versão nova para limpar erros antigos
+const CACHE_NAME = 'echodome-v13'; // Versão nova para limpar erros antigos
 
 // Arquivos ESSENCIAIS para o App ser considerado instalável
 const STATIC_FILES = [
