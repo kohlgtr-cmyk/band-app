@@ -786,5 +786,5 @@ And though the night can feel so deep
 And the road feels steep to climb
 In the quiet I remember
 This fragile life is mine`
-  }
+  },
 ];
