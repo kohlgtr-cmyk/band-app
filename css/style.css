@@ -547,3 +547,19 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .content { padding: 16px 16px 24px; }
   .topbar { padding: 12px 16px; }
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+  display: block;
+}
+.dl-btn.downloaded svg path {
+  fill: var(--green);
+}
+.offline-dot {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 4px;
+}
