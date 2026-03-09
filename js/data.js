@@ -787,4 +787,22 @@ And the road feels steep to climb
 In the quiet I remember
 This fragile life is mine`
   },
+  {
+    id: 10,
+    title: "Somewhere Between Us",
+    albumId: "album1",
+    track: 10,
+    file: "assets/music/somewhere-between-us.mp3",
+    duration: "4:34",
+    lyrics: `null`
+  },
+  {
+    id: 11,
+    title: "Letters I've Never Send",
+    albumId: "album1",
+    track: 11,
+    file: "assets/music/letters-i-ve-never-send.mp3",
+    duration: "4:34",
+    lyrics: `null`
+  }
 ];
