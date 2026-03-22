@@ -12,7 +12,13 @@ const albums = [
     cover: "assets/img/full-band-logo.jpg", // ← coloque a capa (ou deixe null para emoji)
     coverEmoji: "🎸",               // ← emoji de fallback se não tiver capa
   },
-
+  {
+    id: "album2",
+    name: "Silent Harmonies",
+    year: 2027,
+    cover: "/assets/img/album2.png",
+    coverEmoji: "",
+  }
 ];
 
 const songs = [
@@ -707,7 +713,7 @@ More than you know`
   {
     id: 9,
     title: "After Everyone Sleeps",
-    albumId: "album1",
+    albumId: "album2",
     track: 9,
     file: "assets/music/after-everyone-sleeps.mp3",
     duration: "4:29",
@@ -790,7 +796,7 @@ This fragile life is mine`
   {
     id: 10,
     title: "Somewhere Between Us",
-    albumId: "album1",
+    albumId: "album2",
     track: 10,
     file: "assets/music/somewhere-between-us.mp3",
     duration: "4:34",
@@ -799,10 +805,64 @@ This fragile life is mine`
   {
     id: 11,
     title: "Letters I've Never Send",
-    albumId: "album1",
+    albumId: "album2",
     track: 11,
     file: "assets/music/letters-i-ve-never-send.mp3",
     duration: "4:34",
+    lyrics: `null`
+  },
+  {
+    id: 12,
+    title: "Te Voy A Cambiar",
+    albumId: "album2",
+    track: 12,
+    file: "assets/music/te-voy-a-cambiar.mp3",
+    duration: "4:35",
+    lyrics: `null`
+  },
+  {
+    id: 13,
+    title: "Depois Das 2 Da Manhã",
+    albumId: "album2",
+    track: 13,
+    file: "assets/music/depois-das-2-da-manha.mp3",
+    duration: "3:33",
+    lyrics: `null`
+  },
+  {
+    id: 14,
+    title: "Até Onde Vale",
+    albumId: "album2",
+    track: 14,
+    file: "assets/music/ate-onde-vale.mp3",
+    duration: "3:51",
+    lyrics: `null`
+  },
+  {
+    id: 15,
+    title: "Até Onde Vale - V2",
+    albumId: "album2",
+    track: 15,
+    file: "assets/music/ate-onde-vale-v2.mp3",
+    duration: "3:47",
+    lyrics: `null`
+  },
+  {
+    id: 16,
+    title: "Vozes Em Mim",
+    albumId: "album2",
+    track: 16,
+    file: "assets/music/vozes-em-mim.mp3",
+    duration: "3:15",
+    lyrics: `null`
+  },
+  {
+    id: 17,
+    title: "Vozes Em Mim - V2",
+    albumId: "album2",
+    track: 17,
+    file: "assets/music/vozes-em-mim-v2.mp3",
+    duration: "3:44",
     lyrics: `null`
   }
 ];
