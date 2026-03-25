@@ -800,7 +800,7 @@ This fragile life is mine`
     track: 10,
     file: "assets/music/somewhere-between-us.mp3",
     duration: "4:34",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 11,
@@ -809,7 +809,7 @@ This fragile life is mine`
     track: 11,
     file: "assets/music/letters-i-ve-never-send.mp3",
     duration: "4:34",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 12,
@@ -818,7 +818,7 @@ This fragile life is mine`
     track: 12,
     file: "assets/music/te-voy-a-cambiar.mp3",
     duration: "4:35",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 13,
@@ -827,7 +827,7 @@ This fragile life is mine`
     track: 13,
     file: "assets/music/depois-das-duas-da-manha.mp3",
     duration: "3:33",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 14,
@@ -836,7 +836,7 @@ This fragile life is mine`
     track: 14,
     file: "assets/music/ate-onde-vale.mp3",
     duration: "3:51",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 15,
@@ -845,7 +845,7 @@ This fragile life is mine`
     track: 15,
     file: "assets/music/ate-onde-vale-v2.mp3",
     duration: "3:47",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 16,
@@ -854,7 +854,7 @@ This fragile life is mine`
     track: 16,
     file: "assets/music/vozes-em-mim.mp3",
     duration: "3:15",
-    lyrics: `null`
+    lyrics: null
   },
   {
     id: 17,
@@ -863,6 +863,6 @@ This fragile life is mine`
     track: 17,
     file: "assets/music/vozes-em-mim-v2.mp3",
     duration: "3:44",
-    lyrics: `null`
+    lyrics: null
   }
 ];
