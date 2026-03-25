@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v27';
+const CACHE_NAME = 'echodome-v28';
 const MUSIC_CACHE = 'echodome-music-v1';
 
 // Arquivos estáticos essenciais para o app funcionar offline
