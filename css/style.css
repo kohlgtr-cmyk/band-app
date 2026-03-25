@@ -95,8 +95,24 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   background: var(--gold-dim);
 }
 
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+}
+.sidebar-tagline {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--t3);
+  letter-spacing: 0.8px;
+  padding: 0 10px;
+  border-left: 2px solid var(--gold);
+}
+
 .offline-badge {
-  margin-top: auto; padding: 10px 14px;
+  padding: 10px 14px;
   background: var(--bg3); border-radius: 6px;
   border: 1px solid var(--border);
   font-size: 11px; color: var(--t2);
@@ -489,10 +505,18 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .p-bar {
   flex: 1; height: 3px;
   background: var(--bg4); border-radius: 2px;
-  cursor: pointer; position: relative;
+  cursor: grab; position: relative;
   transition: height .15s;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .p-bar:hover { height: 5px; }
+.p-bar.is-scrubbing {
+  cursor: grabbing;
+  height: 5px;
+}
+.p-bar.is-scrubbing .p-bar-thumb { opacity: 1; }
 .p-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--gold), var(--gold2));

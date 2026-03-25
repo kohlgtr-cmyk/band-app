@@ -7,6 +7,10 @@ let shuffle = false;
 let repeat = false;
 let currentAlbumId = null;
 let lyricsOpen = false;
+let progressBarDragging = false;
+
+/** Se a faixa já passou deste ponto, “voltar” reinicia do zero; se já estiver no início, vai à faixa anterior. */
+const PREV_AT_START_SEC = 0.5;
 
 // ---- OFFLINE / DOWNLOAD STATE ----
 let downloadedSongs = JSON.parse(localStorage.getItem('echodome-downloads') || '[]');
@@ -85,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
   offlineCheck();
   registerSW();
   syncMenuAria();
+  setupProgressBar();
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && lyricsOpen) closeLyrics();
   });
@@ -321,7 +326,13 @@ function togglePlay() {
 }
 
 function prevTrack() {
-  if (!queue.length) return;
+  if (!queue.length || !currentTrack) return;
+  const t = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+  if (t > PREV_AT_START_SEC) {
+    audio.currentTime = 0;
+    syncProgressUI(0);
+    return;
+  }
   queueIndex = (queueIndex - 1 + queue.length) % queue.length;
   playSong(queue[queueIndex].id, queue);
 }
@@ -346,22 +357,64 @@ function toggleRepeat() {
   btn.classList.toggle('active', repeat);
   btn.setAttribute('aria-pressed', repeat ? 'true' : 'false');
 }
-function seek(e) {
+function syncProgressUI(t) {
   if (!audio.duration) return;
-  const bar = document.getElementById('pBar');
-  const pct = (e.clientX - bar.getBoundingClientRect().left) / bar.offsetWidth;
-  audio.currentTime = Math.max(0, Math.min(1, pct)) * audio.duration;
+  const pct = (t / audio.duration) * 100;
+  document.getElementById('pFill').style.width = pct + '%';
+  document.getElementById('pThumb').style.left = pct + '%';
+  document.getElementById('pCurrent').textContent = fmt(t);
 }
+
+function seekFromClientX(clientX) {
+  if (!currentTrack || !audio.duration) return;
+  const bar = document.getElementById('pBar');
+  const rect = bar.getBoundingClientRect();
+  const w = rect.width;
+  if (w <= 0) return;
+  const pct = (clientX - rect.left) / w;
+  audio.currentTime = Math.max(0, Math.min(1, pct)) * audio.duration;
+  syncProgressUI(audio.currentTime);
+}
+
+function setupProgressBar() {
+  const bar = document.getElementById('pBar');
+  let onMove = null;
+  let onUp = null;
+  bar.addEventListener('pointerdown', (e) => {
+    if (!currentTrack) return;
+    if (!audio.duration) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    seekFromClientX(e.clientX);
+    progressBarDragging = true;
+    bar.classList.add('is-scrubbing');
+    onMove = (ev) => {
+      if (!progressBarDragging) return;
+      ev.preventDefault();
+      seekFromClientX(ev.clientX);
+    };
+    onUp = () => {
+      progressBarDragging = false;
+      bar.classList.remove('is-scrubbing');
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      onMove = null;
+      onUp = null;
+    };
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  });
+}
+
 function setVolume(v) { audio.volume = v / 100; }
 
 // ---- AUDIO EVENTS ----
 function audioEvents() {
   audio.addEventListener('timeupdate', () => {
-    if (!audio.duration) return;
-    const pct = (audio.currentTime / audio.duration) * 100;
-    document.getElementById('pFill').style.width = pct + '%';
-    document.getElementById('pThumb').style.left = pct + '%';
-    document.getElementById('pCurrent').textContent = fmt(audio.currentTime);
+    if (!audio.duration || progressBarDragging) return;
+    syncProgressUI(audio.currentTime);
   });
   audio.addEventListener('loadedmetadata', () => {
     document.getElementById('pTotal').textContent = fmt(audio.duration);

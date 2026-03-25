@@ -1,7 +1,7 @@
 {
   "name": "EchoDome Band",
   "short_name": "EchoDome",
-  "description": "App oficial da EchoDome Band",
+  "description": "Discografia EchoDome — letras, player e downloads no seu aparelho.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
