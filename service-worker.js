@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v31';
+const CACHE_NAME = 'echodome-v32';
 const MUSIC_CACHE = 'echodome-music-v2';
 
 function resolveAbsoluteUrl(urlOrPath) {
@@ -46,43 +46,60 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// ---- FETCH: serve do cache quando disponível ----
+// ---- FETCH: HTML sempre tenta rede primeiro (evita app “preso” em cache antigo) ----
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+
+  const isNavigate =
+    e.request.mode === 'navigate' || e.request.destination === 'document';
+
+  if (isNavigate) {
+    e.respondWith(
+      fetch(e.request)
+        .then((response) => {
+          if (response && response.ok && response.type === 'basic') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(e.request).then(
+            (r) =>
+              r ||
+              caches.match('./index.html') ||
+              caches.match('/index.html') ||
+              caches.match('index.html')
+          )
+        )
+    );
+    return;
+  }
 
   const isAudio = e.request.url.match(/\.(mp3|ogg|wav|m4a|aac|flac)(\?.*)?$/i);
 
   e.respondWith(
-    // Áudio vem do MUSIC_CACHE, estáticos do CACHE_NAME
     caches.open(isAudio ? MUSIC_CACHE : CACHE_NAME)
-      .then(cache => cache.match(e.request))
-      .then(cached => {
+      .then((cache) => cache.match(e.request))
+      .then((cached) => {
         if (cached) return cached;
 
-        // Não está no cache — busca na rede
         return fetch(e.request)
-          .then(response => {
+          .then((response) => {
             if (!response || response.status !== 200) return response;
-            // Cacheia automaticamente apenas arquivos estáticos
             if (!isAudio) {
-              caches.open(CACHE_NAME).then(c => c.put(e.request, response.clone()));
+              caches.open(CACHE_NAME).then((c) => c.put(e.request, response.clone()));
             }
             return response;
           })
           .catch(() => {
             const req = e.request;
             const dest = req.destination;
-            const nav = req.mode === 'navigate' || dest === 'document';
             if (isAudio || dest === 'audio') {
               return new Response(null, {
                 status: 503,
                 statusText: 'Audio unavailable offline'
               });
-            }
-            if (nav) {
-              return caches.match('./index.html').then(
-                (r) => r || caches.match('/index.html') || caches.match('index.html')
-              );
             }
             return new Response('', { status: 503, statusText: 'Offline' });
           });

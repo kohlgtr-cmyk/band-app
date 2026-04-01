@@ -110,7 +110,9 @@ function syncMenuAria() {
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    await navigator.serviceWorker.register('service-worker.js');
+    await navigator.serviceWorker.register('service-worker.js', {
+      updateViaCache: 'none'
+    });
     navigator.serviceWorker.addEventListener('message', e => {
       const { type, songId } = e.data;
       if (type === 'DOWNLOAD_DONE') {
