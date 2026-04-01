@@ -1,5 +1,5 @@
-const CACHE_NAME = 'echodome-v32';
-const MUSIC_CACHE = 'echodome-music-v2';
+const CACHE_NAME = 'echodome-v40';
+const MUSIC_CACHE = 'echodome-music-v5';
 
 function resolveAbsoluteUrl(urlOrPath) {
   try {
