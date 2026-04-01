@@ -132,9 +132,22 @@ async function registerSW() {
 }
 
 function sendSWMessage(data) {
-  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage(data);
+  if (!('serviceWorker' in navigator)) return;
+  const send = (sw) => {
+    try {
+      sw.postMessage(data);
+    } catch (e) {
+      console.warn('echodome: postMessage SW falhou', e);
+    }
+  };
+  if (navigator.serviceWorker.controller) {
+    send(navigator.serviceWorker.controller);
+    return;
   }
+  navigator.serviceWorker.ready.then((reg) => {
+    const sw = reg.active || reg.waiting;
+    if (sw) send(sw);
+  });
 }
 
 // ---- DOWNLOAD ----

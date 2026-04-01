@@ -1,5 +1,13 @@
-const CACHE_NAME = 'echodome-v28';
-const MUSIC_CACHE = 'echodome-music-v1';
+const CACHE_NAME = 'echodome-v29';
+const MUSIC_CACHE = 'echodome-music-v2';
+
+function resolveAbsoluteUrl(urlOrPath) {
+  try {
+    return new URL(urlOrPath, self.location.origin).href;
+  } catch {
+    return urlOrPath;
+  }
+}
 
 // Arquivos estáticos essenciais para o app funcionar offline
 const STATIC_FILES = [
@@ -61,8 +69,21 @@ self.addEventListener('fetch', e => {
             return response;
           })
           .catch(() => {
-            // Offline e não tem cache → retorna a página principal
-            return caches.match('./index.html');
+            const req = e.request;
+            const dest = req.destination;
+            const nav = req.mode === 'navigate' || dest === 'document';
+            if (isAudio || dest === 'audio') {
+              return new Response(null, {
+                status: 503,
+                statusText: 'Audio unavailable offline'
+              });
+            }
+            if (nav) {
+              return caches.match('./index.html').then(
+                (r) => r || caches.match('/index.html') || caches.match('index.html')
+              );
+            }
+            return new Response('', { status: 503, statusText: 'Offline' });
           });
       })
   );
@@ -75,11 +96,12 @@ self.addEventListener('message', async e => {
   // Baixar uma música
   if (type === 'DOWNLOAD_SONG') {
     try {
-      const response = await fetch(url);
+      const abs = resolveAbsoluteUrl(url);
+      const response = await fetch(abs);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
       const cache = await caches.open(MUSIC_CACHE);
-      await cache.put(url, response);
+      await cache.put(abs, response.clone());
 
       notifyClients({ type: 'DOWNLOAD_DONE', songId });
     } catch (err) {
@@ -91,8 +113,9 @@ self.addEventListener('message', async e => {
   // Remover uma música do cache
   if (type === 'DELETE_SONG') {
     try {
+      const abs = resolveAbsoluteUrl(url);
       const cache = await caches.open(MUSIC_CACHE);
-      await cache.delete(url);
+      await cache.delete(abs);
       notifyClients({ type: 'DELETE_DONE', songId });
     } catch (err) {
       console.error('[SW] Erro ao remover música:', err);
