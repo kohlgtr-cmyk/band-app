@@ -27,6 +27,9 @@
       <button type="button" class="nav-btn" onclick="showView('all-songs', this)">
         <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>Músicas
       </button>
+      <button type="button" class="nav-btn" onclick="showView('gallery', this)">
+        <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>Galeria
+      </button>
     </nav>
     <div class="sidebar-footer">
       <p class="sidebar-tagline">Anti-algoritmo · Uma banda · Um app</p>
@@ -105,16 +108,35 @@
         <div class="songs-list" id="searchResults"></div>
       </div>
 
+      <!-- GALERIA -->
+      <div class="view" id="view-gallery">
+        <p class="section-label">// Banda</p>
+        <h1 class="view-title">Galeria</h1>
+        <p class="view-subtitle">Palco, ensaio e bastidores.</p>
+        <div class="section-divider"></div>
+        <div class="gallery-grid" id="galleryGrid"></div>
+      </div>
+
     </div>
   </main>
 
-  <!-- LYRICS PANEL -->
+  <!-- LYRICS + SOBRE A MÚSICA -->
   <div class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
     <div class="lyrics-header">
       <h3 id="lyricsTitle">Letra</h3>
-      <button type="button" onclick="closeLyrics()" aria-label="Fechar letra">✕</button>
+      <button type="button" onclick="closeLyrics()" aria-label="Fechar painel de letra">✕</button>
     </div>
-    <div class="lyrics-body" id="lyricsBody"></div>
+    <div class="lyrics-scroll">
+      <section class="lyrics-block" aria-labelledby="lyricsBlockLabel">
+        <h4 id="lyricsBlockLabel" class="lyrics-block__label">Letra</h4>
+        <div id="lyricsBody" class="lyrics-block__text"></div>
+      </section>
+      <section class="lyrics-block lyrics-block--about" aria-labelledby="lyricsAboutLabel">
+        <h4 id="lyricsAboutLabel" class="lyrics-block__label">Sobre a música</h4>
+        <p class="lyrics-block__hint">Inspiração, contexto e bastidores da faixa.</p>
+        <div id="lyricsAbout" class="lyrics-block__text lyrics-block__text--about"></div>
+      </section>
+    </div>
   </div>
 
   <!-- ============================================================
@@ -129,7 +151,7 @@
         <div class="p-title" id="pTitle">Nenhuma música</div>
         <div class="p-artist" id="pArtist">—</div>
       </div>
-      <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra da música">
+      <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra e sobre a música">
         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
       </button>
     </div>
@@ -172,7 +194,17 @@
   </div><!-- /player -->
 
   <audio id="audio"></audio>
+
+  <div id="galleryLightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada" aria-hidden="true" onclick="if(event.target===this)closeGalleryLightbox()">
+    <button type="button" class="gallery-lightbox__close" onclick="closeGalleryLightbox()" aria-label="Fechar">✕</button>
+    <figure class="gallery-lightbox__figure">
+      <img id="galleryLightboxImg" class="gallery-lightbox__img" alt="" />
+      <figcaption id="galleryLightboxCaption" class="gallery-lightbox__cap"></figcaption>
+    </figure>
+  </div>
+
   <script src="js/data.js"></script>
+  <script src="js/gallery.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'echodome-v29';
+const CACHE_NAME = 'echodome-v31';
 const MUSIC_CACHE = 'echodome-music-v2';
 
 function resolveAbsoluteUrl(urlOrPath) {
@@ -17,6 +17,7 @@ const STATIC_FILES = [
   './css/style.css',
   './js/app.js',
   './js/data.js',
+  './js/gallery.js',
   './assets/img/icon-192.png',
   './assets/img/icon-512.png'
 ];

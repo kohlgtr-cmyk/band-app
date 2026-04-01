@@ -1,5 +1,9 @@
 // =====================================================
 // EDITE AQUI: coloque suas músicas e álbuns
+//
+// Por faixa (opcional):
+//   lyrics — texto da letra
+//   about  — inspiração, contexto, bastidores (aparece em "Sobre a música" no app)
 // =====================================================
 
 const BAND_NAME = "EchoDome Band"; // ← troque pelo nome da sua banda
@@ -105,7 +109,8 @@ It's a love story, baby, just say yes
 
 Oh, oh, oh
 Oh, oh, oh, oh
-'Cause we were both young when I first saw you`
+'Cause we were both young when I first saw you`,
+    about: `Versão de estúdio registrada como referência de arranjo e energia de palco. Use este bloco para contar o que inspirou a letra, referências pessoais ou o clima das gravações.`
   },
   {
     id: 2,
@@ -185,6 +190,7 @@ Still holding it all together.
 I just hope
 there’s still something of me
 between the lines.`,
+    about: `Escrita a partir da sensação de cansaço invisível — dias em que tudo funciona por fora e por dentro pesa. A ideia era nomear isso sem romantizar o esgotamento.`
   },
   {
     id: 3,
@@ -270,7 +276,8 @@ Que seja pra me transformar
 Quando você me olha assim
 Não existe mais chão
 Só o som do meu peito
-Explodindo em suas mãos`
+Explodindo em suas mãos`,
+    about: `Uma história de queda e entrega — a letra nasceu de imagens de olhar e corpo reagindo antes da razão. A sonoridade buscou contraste entre versos íntimos e refrão aberto.`
   },
   {
     id: 4,

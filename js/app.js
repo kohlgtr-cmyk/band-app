@@ -7,6 +7,7 @@ let shuffle = false;
 let repeat = false;
 let currentAlbumId = null;
 let lyricsOpen = false;
+let galleryLightboxOpen = false;
 let progressBarDragging = false;
 
 /** Se a faixa já passou deste ponto, “voltar” reinicia do zero; se já estiver no início, vai à faixa anterior. */
@@ -90,8 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
   registerSW();
   syncMenuAria();
   setupProgressBar();
+  renderGallery();
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && lyricsOpen) closeLyrics();
+    if (e.key !== 'Escape') return;
+    if (galleryLightboxOpen) closeGalleryLightbox();
+    else if (lyricsOpen) closeLyrics();
   });
 });
 
@@ -222,8 +226,9 @@ function songRowHTML(song, num, opts) {
     : (album ? album.coverEmoji || '🎵' : '🎵');
 
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
-  const lyrBtn = hasLyrics
-    ? '<button type="button" class="song-lbtn" onclick="event.stopPropagation();showLyrics(' + song.id + ')" title="Ver letra"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></button>'
+  const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
+  const lyrBtn = (hasLyrics || hasAbout)
+    ? '<button type="button" class="song-lbtn" onclick="event.stopPropagation();showLyrics(' + song.id + ')" title="Letra e sobre a música"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></button>'
     : '<span style="width:32px;flex-shrink:0;"></span>';
 
   const dlState = isDownloaded ? 'downloaded' : 'none';
@@ -281,6 +286,77 @@ function renderAllSongs() {
   document.getElementById('allSongsList').innerHTML = songs.map((s, i) => songRowHTML(s, i + 1)).join('');
 }
 
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function renderGallery() {
+  const root = document.getElementById('galleryGrid');
+  if (!root) return;
+  const list = typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos) ? galleryPhotos : [];
+  if (!list.length) {
+    root.innerHTML =
+      '<p class="gallery-empty">Nenhuma foto na galeria. Coloque imagens em <strong>assets/imagens/gallery/</strong> e cadastre-as em <strong>js/gallery.js</strong>.</p>';
+    return;
+  }
+  root.innerHTML = list
+    .map((item, i) => {
+      const src = escapeHtml(item.src);
+      const alt = escapeHtml(item.alt || item.caption || 'Foto da galeria');
+      const cap = item.caption
+        ? '<span class="gallery-item__caption">' + escapeHtml(item.caption) + '</span>'
+        : '';
+      return (
+        '<button type="button" class="gallery-item" onclick="openGalleryLightbox(' +
+        i +
+        ')" aria-label="' +
+        alt +
+        '">' +
+        '<span class="gallery-item__frame"><img src="' +
+        src +
+        '" alt="' +
+        alt +
+        '" loading="lazy" decoding="async" /></span>' +
+        cap +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+function openGalleryLightbox(index) {
+  const list = typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos) ? galleryPhotos : [];
+  const item = list[index];
+  if (!item) return;
+  const lb = document.getElementById('galleryLightbox');
+  const img = document.getElementById('galleryLightboxImg');
+  const cap = document.getElementById('galleryLightboxCaption');
+  img.src = item.src;
+  img.alt = item.alt || item.caption || '';
+  cap.textContent = item.caption || '';
+  cap.style.display = item.caption ? 'block' : 'none';
+  lb.classList.add('open');
+  lb.setAttribute('aria-hidden', 'false');
+  galleryLightboxOpen = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeGalleryLightbox() {
+  const lb = document.getElementById('galleryLightbox');
+  if (!lb || !lb.classList.contains('open')) return;
+  lb.classList.remove('open');
+  lb.setAttribute('aria-hidden', 'true');
+  galleryLightboxOpen = false;
+  document.body.style.overflow = '';
+  const img = document.getElementById('galleryLightboxImg');
+  img.removeAttribute('src');
+}
+
 // ---- NAVIGATION ----
 function showView(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -290,6 +366,7 @@ function showView(name, btn) {
     btn.classList.add('active');
   }
   if (name === 'home') renderHomeSongs();
+  if (name === 'gallery') renderGallery();
   closeSidebar();
 }
 
@@ -489,10 +566,16 @@ function showLyrics(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
   document.getElementById('lyricsTitle').textContent = song.title;
-  const body = document.getElementById('lyricsBody');
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
+  const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
+  const body = document.getElementById('lyricsBody');
+  const aboutEl = document.getElementById('lyricsAbout');
   body.textContent = hasLyrics ? song.lyrics : 'Letra não disponível.';
-  body.style.fontStyle = hasLyrics ? 'normal' : 'italic';
+  body.classList.toggle('is-empty', !hasLyrics);
+  aboutEl.textContent = hasAbout
+    ? song.about
+    : 'Nenhuma informação cadastrada para esta faixa.';
+  aboutEl.classList.toggle('is-empty', !hasAbout);
   const panel = document.getElementById('lyricsPanel');
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
