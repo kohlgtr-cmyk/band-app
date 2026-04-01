@@ -7,7 +7,7 @@
   <meta name="description" content="Discografia EchoDome — letras, player e downloads no seu aparelho." />
   <meta name="theme-color" content="#121212" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="css/style.css?v=32" />
+  <link rel="stylesheet" href="css/style.css?v=34" />
 </head>
 <body>
 
@@ -98,6 +98,7 @@
        <p class="section-label">// Discografia</p>
 <h1 class="view-title">Músicas</h1>
 <p class="view-subtitle">Cada faixa. Cada palavra. Cada história.</p>
+        <p class="musics-page-hint">O ícone <span class="musics-page-hint__gold">dourado</span> abre só a parte <strong>Sobre a música</strong> (inspiração e bastidores).</p>
 <div class="section-divider"></div>
         <div class="songs-list" id="allSongsList"></div>
       </div>
@@ -120,22 +121,32 @@
     </div>
   </main>
 
-  <!-- LYRICS + SOBRE A MÚSICA -->
+  <!-- PAINEL: só letra -->
   <div class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
     <div class="lyrics-header">
-      <h3 id="lyricsTitle">Letra</h3>
-      <button type="button" onclick="closeLyrics()" aria-label="Fechar painel de letra">✕</button>
+      <div class="panel-header-titles">
+        <p class="panel-kicker">Letra</p>
+        <h3 id="lyricsTitle">—</h3>
+      </div>
+      <button type="button" onclick="closeLyrics()" aria-label="Fechar letra">✕</button>
+    </div>
+    <div class="lyrics-scroll lyrics-scroll--solo">
+      <div id="lyricsBody" class="lyrics-block__text lyrics-body-solo"></div>
+    </div>
+  </div>
+
+  <!-- PAINEL: só informações / sobre a faixa -->
+  <div class="about-panel" id="aboutPanel" aria-hidden="true">
+    <div class="lyrics-header about-panel__header">
+      <div class="panel-header-titles">
+        <p class="panel-kicker panel-kicker--gold">Sobre a música</p>
+        <h3 id="aboutPanelTitle">—</h3>
+      </div>
+      <button type="button" onclick="closeAboutPanel()" aria-label="Fechar informações da faixa">✕</button>
     </div>
     <div class="lyrics-scroll">
-      <section class="lyrics-block" aria-labelledby="lyricsBlockLabel">
-        <h4 id="lyricsBlockLabel" class="lyrics-block__label">Letra</h4>
-        <div id="lyricsBody" class="lyrics-block__text"></div>
-      </section>
-      <section class="lyrics-block lyrics-block--about" aria-labelledby="lyricsAboutLabel">
-        <h4 id="lyricsAboutLabel" class="lyrics-block__label">Sobre a música</h4>
-        <p class="lyrics-block__hint">Inspiração, contexto e bastidores da faixa.</p>
-        <div id="lyricsAbout" class="lyrics-block__text lyrics-block__text--about"></div>
-      </section>
+      <p class="lyrics-block__hint about-panel__hint">Inspiração, contexto e bastidores da faixa.</p>
+      <div id="aboutPanelBody" class="lyrics-block__text lyrics-block__text--about"></div>
     </div>
   </div>
 
@@ -151,7 +162,7 @@
         <div class="p-title" id="pTitle">Nenhuma música</div>
         <div class="p-artist" id="pArtist">—</div>
       </div>
-      <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra e sobre a música">
+      <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra">
         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
       </button>
     </div>
@@ -203,8 +214,8 @@
     </figure>
   </div>
 
-  <script src="js/data.js?v=32"></script>
-  <script src="js/gallery.js?v=32"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/data.js?v=34"></script>
+  <script src="js/gallery.js?v=34"></script>
+  <script src="js/app.js?v=34"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ let shuffle = false;
 let repeat = false;
 let currentAlbumId = null;
 let lyricsOpen = false;
+let aboutPanelOpen = false;
 let galleryLightboxOpen = false;
 let progressBarDragging = false;
 
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (galleryLightboxOpen) closeGalleryLightbox();
+    else if (aboutPanelOpen) closeAboutPanel();
     else if (lyricsOpen) closeLyrics();
   });
 });
@@ -216,9 +218,14 @@ function albumCardHTML(album) {
   );
 }
 
+function aboutIconSVG() {
+  return '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+}
+
 function songRowHTML(song, num, opts) {
   opts = opts || {};
   const showPlayCount = !!opts.showPlayCount;
+  const musicsPage = !!opts.musicsPage;
   const album = albums.find(a => a.id === song.albumId);
   const isPlaying = currentTrack && currentTrack.id === song.id;
   const isDownloaded = isSongDownloaded(song.id);
@@ -230,7 +237,7 @@ function songRowHTML(song, num, opts) {
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
   const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
   const lyrBtn = (hasLyrics || hasAbout)
-    ? '<button type="button" class="song-lbtn" onclick="event.stopPropagation();showLyrics(' + song.id + ')" title="Letra e sobre a música"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></button>'
+    ? '<button type="button" class="song-lbtn" onclick="event.stopPropagation();showLyrics(' + song.id + ')" title="Ver letra"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></button>'
     : '<span style="width:32px;flex-shrink:0;"></span>';
 
   const dlState = isDownloaded ? 'downloaded' : 'none';
@@ -238,6 +245,10 @@ function songRowHTML(song, num, opts) {
   const dlBtn = song.file
     ? '<button class="dl-btn" data-dl="' + song.id + '" data-dl-state="' + dlState + '" title="' + dlTitle + '" onclick="event.stopPropagation();toggleDownload(' + song.id + ')">' + dlIconSVG(dlState) + '</button>'
     : '<span></span>';
+
+  const aboutBtnMusics = musicsPage
+    ? '<button type="button" class="about-btn" onclick="event.stopPropagation();showSongAbout(' + song.id + ')" title="Sobre a música" aria-label="Abrir sobre a música">' + aboutIconSVG() + '</button>'
+    : '';
 
   const plays = getPlayCount(song.id);
   const playsLabel = plays === 1 ? '1 reprodução neste aparelho' : plays + ' reproduções neste aparelho';
@@ -249,8 +260,9 @@ function songRowHTML(song, num, opts) {
       )
     : (song.duration || '');
 
+  const rowExtra = musicsPage ? ' song-row--musics' : '';
   return (
-    '<div class="song-row' + (isPlaying ? ' playing' : '') + (showPlayCount ? ' song-row--plays' : '') + '" onclick="playSong(' + song.id + ')">' +
+    '<div class="song-row' + (isPlaying ? ' playing' : '') + (showPlayCount ? ' song-row--plays' : '') + rowExtra + '" onclick="playSong(' + song.id + ')">' +
       '<div class="song-num">' + (isPlaying ? '▶' : num) + '</div>' +
       '<div class="song-thumb">' + thumb + '</div>' +
       '<div class="song-info">' +
@@ -258,6 +270,7 @@ function songRowHTML(song, num, opts) {
         '<div class="song-sub">' + (album ? album.name : '') + (isDownloaded ? ' · <span style="color:var(--gold);font-size:10px;letter-spacing:1px;">OFFLINE</span>' : '') + '</div>' +
       '</div>' +
       lyrBtn +
+      aboutBtnMusics +
       dlBtn +
       '<div class="' + durClass + '">' + durInner + '</div>' +
     '</div>'
@@ -285,7 +298,9 @@ function renderAllAlbumsGrid() {
   document.getElementById('allAlbums').innerHTML = albums.map(albumCardHTML).join('');
 }
 function renderAllSongs() {
-  document.getElementById('allSongsList').innerHTML = songs.map((s, i) => songRowHTML(s, i + 1)).join('');
+  document.getElementById('allSongsList').innerHTML = songs.map((s, i) =>
+    songRowHTML(s, i + 1, { musicsPage: true })
+  ).join('');
 }
 
 function escapeHtml(s) {
@@ -564,26 +579,48 @@ function refreshRows() {
 function toggleLyrics() {
   lyricsOpen ? closeLyrics() : (currentTrack ? showLyrics(currentTrack.id) : null);
 }
+
 function showLyrics(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
-  document.getElementById('lyricsTitle').textContent = song.title;
+  closeAboutPanel();
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
-  const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
+  document.getElementById('lyricsTitle').textContent = song.title;
   const body = document.getElementById('lyricsBody');
-  const aboutEl = document.getElementById('lyricsAbout');
   body.textContent = hasLyrics ? song.lyrics : 'Letra não disponível.';
   body.classList.toggle('is-empty', !hasLyrics);
-  aboutEl.textContent = hasAbout
-    ? song.about
-    : 'Nenhuma informação cadastrada para esta faixa.';
-  aboutEl.classList.toggle('is-empty', !hasAbout);
   const panel = document.getElementById('lyricsPanel');
   panel.classList.add('open');
   panel.setAttribute('aria-hidden', 'false');
   document.getElementById('lyricsBtn').classList.add('active');
   lyricsOpen = true;
 }
+
+function showSongAbout(songId) {
+  const song = songs.find(s => s.id === songId);
+  if (!song) return;
+  closeLyrics();
+  const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
+  document.getElementById('aboutPanelTitle').textContent = song.title;
+  const body = document.getElementById('aboutPanelBody');
+  body.textContent = hasAbout
+    ? song.about
+    : 'Nenhuma informação cadastrada para esta faixa.';
+  body.classList.toggle('is-empty', !hasAbout);
+  const panel = document.getElementById('aboutPanel');
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  aboutPanelOpen = true;
+}
+
+function closeAboutPanel() {
+  const panel = document.getElementById('aboutPanel');
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  aboutPanelOpen = false;
+}
+
 function closeLyrics() {
   const panel = document.getElementById('lyricsPanel');
   panel.classList.remove('open');
