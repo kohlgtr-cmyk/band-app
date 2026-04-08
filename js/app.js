@@ -1109,21 +1109,173 @@ function fmt(s) {
   return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 }
 
-// ---- EQUALIZADOR DE ÁUDIO ----
+// ---- EQUALIZADOR GRÁFICO FUNCIONAL ----
 let audioContext = null;
 let analyser = null;
 let source = null;
-let equalizerActive = false;
+let equalizerFilters = [];
+let equalizerEnabled = false;
+let eqPanelOpen = false;
+
+// Frequências das 8 bandas
+const EQ_FREQUENCIES = [60, 170, 350, 1000, 3500, 6000, 10000, 16000];
+
+function initAudioContext() {
+  const audio = document.getElementById('audio');
+  if (!audio) return null;
+  
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    // Criar filtros apenas uma vez
+    if (equalizerFilters.length === 0) {
+      EQ_FREQUENCIES.forEach((freq, index) => {
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'peaking';
+        filter.frequency.value = freq;
+        filter.Q.value = 1.4;
+        filter.gain.value = 0;
+        equalizerFilters.push(filter);
+      });
+    }
+    
+    // Conectar source aos filtros em cadeia
+    if (!source) {
+      source = audioContext.createMediaElementSource(audio);
+      
+      // Cadeia: source -> filter0 -> filter1 -> ... -> filter7 -> destination
+      let previousNode = source;
+      equalizerFilters.forEach(filter => {
+        previousNode.connect(filter);
+        previousNode = filter;
+      });
+      previousNode.connect(audioContext.destination);
+    }
+    
+    // Também criar analyser para o visualizador
+    if (!analyser) {
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.85;
+      // Conectar o último filtro ao analyser também
+      equalizerFilters[equalizerFilters.length - 1].connect(analyser);
+    }
+    
+    if (audioContext.state === 'suspended') {
+      audioContext.resume();
+    }
+    
+    return audioContext;
+  } catch (err) {
+    console.error('[EQ] Erro ao inicializar AudioContext:', err);
+    return null;
+  }
+}
+
+function updateEqBand(bandIndex, value) {
+  const gain = parseFloat(value);
+  
+  // Inicializar contexto se necessário
+  if (!audioContext) initAudioContext();
+  
+  // Atualizar filtro
+  if (equalizerFilters[bandIndex]) {
+    equalizerFilters[bandIndex].gain.setValueAtTime(gain, audioContext.currentTime);
+  }
+  
+  // Atualizar UI
+  const band = document.querySelectorAll('.eq-band')[bandIndex];
+  if (band) {
+    const valueDisplay = band.querySelector('.eq-value');
+    const slider = band.querySelector('.eq-slider');
+    if (valueDisplay) valueDisplay.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
+    if (slider) slider.value = gain;
+  }
+  
+  equalizerEnabled = true;
+  updateEqButtonState();
+}
+
+function resetEqualizer() {
+  EQ_FREQUENCIES.forEach((_, index) => {
+    updateEqBand(index, 0);
+  });
+  document.getElementById('eqPreset').value = 'flat';
+  showToast('Equalizador resetado');
+}
+
+function applyEqPreset(preset) {
+  const presets = {
+    flat: [0, 0, 0, 0, 0, 0, 0, 0],
+    rock: [4, 2, -2, -4, 2, 4, 5, 4],
+    pop: [-2, -1, 0, 2, 4, 3, 1, 0],
+    jazz: [0, 0, 2, 4, 2, 0, 2, 4],
+    bass: [6, 5, 4, 0, -2, -3, -2, 0],
+    vocal: [-2, -2, 0, 3, 5, 3, 1, 0]
+  };
+  
+  const values = presets[preset] || presets.flat;
+  values.forEach((val, index) => {
+    setTimeout(() => updateEqBand(index, val), index * 50); // Animação sequencial
+  });
+  
+  showToast(`Preset: ${preset.charAt(0).toUpperCase() + preset.slice(1)}`);
+}
+
+function toggleEqPanel() {
+  const panel = document.getElementById('eqPanel');
+  const btn = document.getElementById('eqBtn');
+  
+  if (!panel) return;
+  
+  eqPanelOpen = !eqPanelOpen;
+  
+  if (eqPanelOpen) {
+    // Inicializar áudio se necessário (requer interação do usuário)
+    if (!audioContext && userInteracted) {
+      initAudioContext();
+    }
+    panel.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+    if (btn) btn.classList.add('active');
+  } else {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+    if (btn && !equalizerEnabled) btn.classList.remove('active');
+  }
+}
+
+function updateEqButtonState() {
+  const btn = document.getElementById('eqBtn');
+  const hasChanges = equalizerFilters.some(f => f.gain.value !== 0);
+  
+  if (hasChanges) {
+    equalizerEnabled = true;
+    if (btn) btn.classList.add('active');
+  } else {
+    equalizerEnabled = false;
+    if (btn && !eqPanelOpen) btn.classList.remove('active');
+  }
+}
+
+// Fechar painel com ESC
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && eqPanelOpen) {
+    toggleEqPanel();
+  }
+});
+
+// ---- VISUALIZADOR DE ESPECTRO (o que já existia) ----
 let eqBars = [];
 let eqAnimationId = null;
+let visualizerActive = false;
 
-function initEqualizer() {
-  const audio = document.getElementById('audio');
+function initVisualizerBars() {
   const eqContainer = document.getElementById('equalizer');
+  if (!eqContainer) return;
   
-  if (!audio || !eqContainer) return;
-  
-  // Criar barras do equalizador (20 barras)
   eqContainer.innerHTML = '';
   eqBars = [];
   for (let i = 0; i < 20; i++) {
@@ -1133,6 +1285,65 @@ function initEqualizer() {
     eqContainer.appendChild(bar);
     eqBars.push(bar);
   }
+}
+
+function animateEqualizer() {
+  if (!visualizerActive || !analyser) return;
+  
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(dataArray);
+  
+  const step = Math.floor(dataArray.length / eqBars.length);
+  eqBars.forEach((bar, i) => {
+    const value = dataArray[i * step] || 0;
+    const percent = value / 255;
+    const height = Math.max(2, percent * 40);
+    bar.style.height = height + 'px';
+  });
+  
+  eqAnimationId = requestAnimationFrame(animateEqualizer);
+}
+
+function startVisualizer() {
+  visualizerActive = true;
+  const eqContainer = document.getElementById('equalizer');
+  if (eqContainer) eqContainer.classList.add('active');
+  animateEqualizer();
+}
+
+function stopVisualizer() {
+  visualizerActive = false;
+  if (eqAnimationId) cancelAnimationFrame(eqAnimationId);
+  const eqContainer = document.getElementById('equalizer');
+  if (eqContainer) eqContainer.classList.remove('active');
+  eqBars.forEach(bar => bar.style.height = '2px');
+}
+
+// ---- EVENTOS ----
+// Inicializar visualizador quando tocar
+audio.addEventListener('play', () => {
+  if (userInteracted && !audioContext) {
+    initAudioContext();
+  }
+  startVisualizer();
+  updateFloatingPlayIcon(true);
+});
+
+audio.addEventListener('pause', () => {
+  stopVisualizer();
+  updateFloatingPlayIcon(false);
+});
+
+// Atualizar ícone do play no fullscreen
+function updateFloatingPlayIcon(isPlaying) {
+  // Código existente para atualizar ícones...
+  const vizPlayBtn = document.getElementById('vizPlayBtn');
+  if (vizPlayBtn) {
+    vizPlayBtn.innerHTML = isPlaying
+      ? '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+      : '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  }
+}
   
   // Configurar Web Audio API
   try {
@@ -1380,3 +1591,7 @@ window.toggleVisualizer = toggleVisualizer;
 window.exportUserData = exportUserData;
 window.shareSong = shareSong;
 window.toggleEqualizer = toggleEqualizer;
+window.toggleEqPanel = toggleEqPanel;
+window.updateEqBand = updateEqBand;
+window.resetEqualizer = resetEqualizer;
+window.applyEqPreset = applyEqPreset;

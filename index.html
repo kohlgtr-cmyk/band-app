@@ -209,7 +209,7 @@
       <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer para dormir" title="Timer (30min)">
         <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       </button>
-      <button type="button" class="p-icon-btn" onclick="toggleEqualizer()" id="eqBtn" aria-label="Equalizador" title="Ativar/Desativar equalizador">
+      <button type="button" class="p-icon-btn" onclick="toggleEqPanel()" id="eqBtn" aria-label="Equalizador" title="Abrir Equalizador">
         <svg viewBox="0 0 24 24"><path d="M3 17h2v-2H3v2zm0-10v6h2V7H3zm4 12h2v-6H7v6zm0-8h2V7H7v2zm4 8h2v-4h-2v4zm0-6h2V7h-2v2zm4 6h2v-8h-2v8zm0-10v4h2V3h-2z"/></svg>
       </button>
     </div>
@@ -257,5 +257,81 @@
   <script src="js/data.js?v=50"></script>
   <script src="js/gallery.js?v=50"></script>
   <script type="module" src="js/app.js?v=50"></script>
+  <!-- PAINEL: Equalizador Gráfico -->
+<div class="eq-panel" id="eqPanel" aria-hidden="true">
+  <div class="eq-header">
+    <div class="panel-header-titles">
+      <p class="panel-kicker">Equalizador</p>
+      <h3>Equalizador Gráfico</h3>
+    </div>
+    <div class="eq-presets">
+      <select id="eqPreset" onchange="applyEqPreset(this.value)">
+        <option value="flat">Flat (Neutro)</option>
+        <option value="rock">Rock</option>
+        <option value="pop">Pop</option>
+        <option value="jazz">Jazz</option>
+        <option value="bass">Bass Boost</option>
+        <option value="vocal">Vocal Boost</option>
+      </select>
+      <button type="button" class="eq-reset" onclick="resetEqualizer()" title="Resetar">↺</button>
+    </div>
+    <button type="button" class="eq-close" onclick="toggleEqPanel()" aria-label="Fechar equalizador">✕</button>
+  </div>
+  
+  <div class="eq-sliders">
+    <!-- 8 Bandas de frequência -->
+    <div class="eq-band" data-freq="60">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(0, this.value)">
+      <label>60Hz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="170">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(1, this.value)">
+      <label>170Hz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="350">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(2, this.value)">
+      <label>350Hz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="1000">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(3, this.value)">
+      <label>1kHz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="3500">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(4, this.value)">
+      <label>3.5kHz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="6000">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(5, this.value)">
+      <label>6kHz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="10000">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(6, this.value)">
+      <label>10kHz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+    <div class="eq-band" data-freq="16000">
+      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(7, this.value)">
+      <label>16kHz</label>
+      <span class="eq-value">0dB</span>
+    </div>
+  </div>
+  
+  <div class="eq-footer">
+    <div class="eq-master">
+      <label>Volume Master</label>
+      <input type="range" min="0" max="150" value="100" class="eq-master-slider" oninput="setVolume(this.value)">
+      <span id="eqMasterValue">100%</span>
+    </div>
+    <div class="eq-info">
+      <span>Clique em uma banda para ajustar os graves, médios ou agudos</span>
+    </div>
+  </div>
+</div>
 </body>
 </html>
