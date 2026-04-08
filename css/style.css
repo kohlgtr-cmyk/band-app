@@ -1171,64 +1171,120 @@ body.offline-theme::before {
   z-index: -1;
 }
 
-/* ===================== BOTÕES FLUTUANTES DE CONTROLE ===================== */
-.player-floating-controls {
-  display: none;
+/* ===================== BOTÕES DE CONTROLE NO FULLSCREEN ===================== */
+.visualizer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-@media (max-width: 768px) {
-  .player-floating-controls {
-    display: flex;
-    position: fixed;
-    bottom: calc(var(--ph) + 20px);
-    right: 20px;
-    gap: 12px;
-    z-index: 100;
-    flex-direction: column;
-  }
-  
-  .floating-btn {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--gold);
-    border: none;
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    transition: transform 0.2s, background 0.2s;
-    backdrop-filter: blur(10px);
-  }
-  
-  body.offline-theme .floating-btn {
-    background: #00d4ff;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
-  }
-  
-  .floating-btn:active {
-    transform: scale(0.95);
-  }
-  
-  .floating-btn svg {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-  }
-  
-  .floating-btn.prev,
-  .floating-btn.next {
-    width: 48px;
-    height: 48px;
-    background: var(--bg3);
-    color: var(--t);
-  }
-  
-  body.offline-theme .floating-btn.prev,
-  body.offline-theme .floating-btn.next {
-    background: rgba(0, 212, 255, 0.2);
-    color: #00d4ff;
-  }
+.viz-control-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(200, 135, 74, 0.4);
+  background: rgba(13, 17, 23, 0.8);
+  backdrop-filter: blur(10px);
+  color: var(--gold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.viz-control-btn:hover {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+  transform: scale(1.1);
+  box-shadow: 0 0 30px rgba(200, 135, 74, 0.5);
+}
+
+.viz-control-btn.viz-play {
+  width: 64px;
+  height: 64px;
+  background: var(--gold);
+  color: #000;
+  border: none;
+}
+
+.viz-control-btn.viz-play:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 40px rgba(200, 135, 74, 0.6);
+}
+
+.viz-control-btn.viz-eq {
+  border-color: rgba(200, 135, 74, 0.6);
+}
+
+.viz-control-btn.viz-eq.active {
+  background: var(--gold);
+  color: #000;
+  animation: pulse-eq 2s infinite;
+}
+
+@keyframes pulse-eq {
+  0%, 100% { box-shadow: 0 0 10px rgba(200, 135, 74, 0.5); }
+  50% { box-shadow: 0 0 25px rgba(200, 135, 74, 0.8); }
+}
+
+/* Tema offline nos botões do visualizador */
+body.offline-theme .viz-control-btn {
+  border-color: rgba(0, 212, 255, 0.4);
+  color: #00d4ff;
+  background: rgba(10, 15, 26, 0.8);
+}
+
+body.offline-theme .viz-control-btn:hover {
+  background: #00d4ff;
+  color: #000;
+  border-color: #00d4ff;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+body.offline-theme .viz-control-btn.viz-play {
+  background: #00d4ff;
+  color: #000;
+}
+
+body.offline-theme .viz-control-btn.viz-play:hover {
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+}
+
+body.offline-theme .viz-control-btn.viz-eq.active {
+  background: #00d4ff;
+  animation: pulse-eq-ghost 2s infinite;
+}
+
+@keyframes pulse-eq-ghost {
+  0%, 100% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.5); }
+  50% { box-shadow: 0 0 35px rgba(0, 212, 255, 0.9), 0 0 50px rgba(94, 234, 212, 0.4); }
+}
+
+/* Botão de equalizador no player principal */
+.p-icon-btn#eqBtn.active {
+  color: var(--gold);
+  animation: pulse-eq-small 2s infinite;
+}
+
+body.offline-theme .p-icon-btn#eqBtn.active {
+  color: #00d4ff;
+  animation: pulse-eq-ghost-small 2s infinite;
+}
+
+@keyframes pulse-eq-small {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(200, 135, 74, 0.5)); }
+  50% { filter: drop-shadow(0 0 8px rgba(200, 135, 74, 0.8)); }
+}
+
+@keyframes pulse-eq-ghost-small {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(0, 212, 255, 0.5)); }
+  50% { filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.9)); }
+}
+
+/* Ocultar botões flutuantes antigos (mobile) - REMOVER SE EXISTIR */
+.player-floating-controls {
+  display: none !important;
 }

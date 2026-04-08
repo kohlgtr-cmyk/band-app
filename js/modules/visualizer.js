@@ -69,7 +69,7 @@ window.Visualizer = {
     // Remove existente se houver
     const existing = document.getElementById('visualizer-overlay');
     if (existing) existing.remove();
-
+  
     // Cria overlay
     const overlay = document.createElement('div');
     overlay.id = 'visualizer-overlay';
@@ -86,14 +86,14 @@ window.Visualizer = {
       justify-content: center;
       overflow: hidden;
     `;
-
+  
     // Canvas
     this.canvas = document.createElement('canvas');
     this.canvas.id = 'visualizer-canvas';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     overlay.appendChild(this.canvas);
-
+  
     // Botão fechar
     const closeBtn = document.createElement('button');
     closeBtn.innerHTML = '✕';
@@ -125,7 +125,58 @@ window.Visualizer = {
     };
     closeBtn.onclick = () => this.toggleFullscreen(false);
     overlay.appendChild(closeBtn);
-
+  
+    // CONTROLES FLUTUANTES (apenas no fullscreen)
+    const floatingControls = document.createElement('div');
+    floatingControls.className = 'visualizer-controls';
+    floatingControls.style.cssText = `
+      position: absolute;
+      bottom: 60px;
+      right: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10000;
+    `;
+  
+    // Botão Anterior
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>';
+    prevBtn.className = 'viz-control-btn viz-prev';
+    prevBtn.onclick = () => { if(window.prevTrack) window.prevTrack(); };
+    prevBtn.title = 'Faixa anterior';
+    
+    // Botão Play/Pause
+    const playBtn = document.createElement('button');
+    playBtn.id = 'vizPlayBtn';
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+    playBtn.className = 'viz-control-btn viz-play';
+    playBtn.onclick = () => { if(window.togglePlay) window.togglePlay(); };
+    playBtn.title = 'Play/Pause';
+    
+    // Botão Próxima
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>';
+    nextBtn.className = 'viz-control-btn viz-next';
+    nextBtn.onclick = () => { if(window.nextTrack) window.nextTrack(); };
+    nextBtn.title = 'Próxima faixa';
+    
+    // Botão Equalizador
+    const eqBtn = document.createElement('button');
+    eqBtn.id = 'vizEqBtn';
+    eqBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:currentColor"><path d="M3 17h2v-2H3v2zm0-10v6h2V7H3zm4 12h2v-6H7v6zm0-8h2V7H7v2zm4 8h2v-4h-2v4zm0-6h2V7h-2v2zm4 6h2v-8h-2v8zm0-10v4h2V3h-2z"/></svg>';
+    eqBtn.className = 'viz-control-btn viz-eq';
+    eqBtn.onclick = () => { if(window.toggleEqualizer) window.toggleEqualizer(); };
+    eqBtn.title = 'Ativar/Desativar equalizador';
+  
+    floatingControls.appendChild(prevBtn);
+    floatingControls.appendChild(playBtn);
+    floatingControls.appendChild(nextBtn);
+    floatingControls.appendChild(document.createElement('div')).style.height = '10px'; // espaçador
+    floatingControls.appendChild(eqBtn);
+    
+    overlay.appendChild(floatingControls);
+  
     // Info da música
     const info = document.createElement('div');
     info.id = 'viz-info';
@@ -141,9 +192,9 @@ window.Visualizer = {
       text-shadow: 0 2px 10px rgba(0,0,0,0.8);
     `;
     overlay.appendChild(info);
-
+  
     document.body.appendChild(overlay);
-
+  
     // Resize handler
     window.addEventListener('resize', () => this.resize(), { passive: true });
     this.resize();

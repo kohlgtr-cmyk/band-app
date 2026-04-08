@@ -1298,6 +1298,60 @@ document.addEventListener('touchend', e => {
   }
 }, { passive: true });
 
+// ---- CONTROLE DO EQUALIZADOR ----
+let equalizerEnabled = false;
+
+function toggleEqualizer() {
+  const eqBtn = document.getElementById('eqBtn');
+  const vizEqBtn = document.getElementById('vizEqBtn');
+  
+  equalizerEnabled = !equalizerEnabled;
+  
+  if (equalizerEnabled) {
+    // Iniciar equalizador
+    initEqualizer();
+    if (eqBtn) eqBtn.classList.add('active');
+    if (vizEqBtn) vizEqBtn.classList.add('active');
+    showToast('🎵 Equalizador ativado');
+  } else {
+    // Parar equalizador
+    stopEqualizer();
+    if (eqBtn) eqBtn.classList.remove('active');
+    if (vizEqBtn) vizEqBtn.classList.remove('active');
+    showToast('🔇 Equalizador desativado');
+  }
+}
+
+// Atualizar ícone do play no visualizador fullscreen
+const originalUpdatePlayIcon = updatePlayIcon;
+updatePlayIcon = function() {
+  originalUpdatePlayIcon();
+  
+  // Atualizar ícone no fullscreen
+  const vizPlayBtn = document.getElementById('vizPlayBtn');
+  if (vizPlayBtn) {
+    const isPlaying = !audio.paused;
+    vizPlayBtn.innerHTML = isPlaying
+      ? '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+      : '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  }
+};
+
+// Sincronizar estado do equalizador quando entrar no fullscreen
+const originalToggleVisualizer = toggleVisualizer;
+toggleVisualizer = function() {
+  originalToggleVisualizer();
+  
+  // Sincronizar estado do botão de equalizador no fullscreen
+  setTimeout(() => {
+    const vizEqBtn = document.getElementById('vizEqBtn');
+    if (vizEqBtn) {
+      if (equalizerEnabled) vizEqBtn.classList.add('active');
+      else vizEqBtn.classList.remove('active');
+    }
+  }, 100);
+};
+
 // Make functions available globally for HTML onclick handlers
 window.showView = showView;
 window.openAlbum = openAlbum;
@@ -1325,3 +1379,4 @@ window.toggleSleepTimer = toggleSleepTimer;
 window.toggleVisualizer = toggleVisualizer;
 window.exportUserData = exportUserData;
 window.shareSong = shareSong;
+window.toggleEqualizer = toggleEqualizer;
