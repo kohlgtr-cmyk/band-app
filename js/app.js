@@ -1109,6 +1109,195 @@ function fmt(s) {
   return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 }
 
+// ---- EQUALIZADOR DE ÁUDIO ----
+let audioContext = null;
+let analyser = null;
+let source = null;
+let equalizerActive = false;
+let eqBars = [];
+let eqAnimationId = null;
+
+function initEqualizer() {
+  const audio = document.getElementById('audio');
+  const eqContainer = document.getElementById('equalizer');
+  
+  if (!audio || !eqContainer) return;
+  
+  // Criar barras do equalizador (20 barras)
+  eqContainer.innerHTML = '';
+  eqBars = [];
+  for (let i = 0; i < 20; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'eq-bar';
+    bar.style.height = '2px';
+    eqContainer.appendChild(bar);
+    eqBars.push(bar);
+  }
+  
+  // Configurar Web Audio API
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    if (!analyser) {
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.8;
+    }
+    
+    // Conectar source apenas uma vez
+    if (!source && audioContext) {
+      source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+    }
+    
+    equalizerActive = true;
+    eqContainer.classList.add('active');
+    animateEqualizer();
+    
+  } catch (err) {
+    console.error('[Equalizer] Erro ao inicializar:', err);
+  }
+}
+
+function animateEqualizer() {
+  if (!equalizerActive || !analyser) return;
+  
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(dataArray);
+  
+  // Atualizar barras
+  const step = Math.floor(dataArray.length / eqBars.length);
+  eqBars.forEach((bar, i) => {
+    const value = dataArray[i * step] || 0;
+    const percent = value / 255;
+    const height = Math.max(2, percent * 40);
+    bar.style.height = height + 'px';
+  });
+  
+  eqAnimationId = requestAnimationFrame(animateEqualizer);
+}
+
+function stopEqualizer() {
+  equalizerActive = false;
+  if (eqAnimationId) cancelAnimationFrame(eqAnimationId);
+  const eqContainer = document.getElementById('equalizer');
+  if (eqContainer) eqContainer.classList.remove('active');
+  
+  // Resetar barras
+  eqBars.forEach(bar => bar.style.height = '2px');
+}
+
+// Iniciar equalizador quando o áudio tocar
+audio.addEventListener('play', () => {
+  if (userInteracted) {
+    initEqualizer();
+  }
+  updateFloatingPlayIcon(true);
+});
+
+audio.addEventListener('pause', () => {
+  stopEqualizer();
+  updateFloatingPlayIcon(false);
+});
+
+// Atualizar ícone do botão flutuante
+function updateFloatingPlayIcon(isPlaying) {
+  const icon = document.getElementById('floatingPlayIcon');
+  if (icon) {
+    icon.innerHTML = isPlaying
+      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+  }
+}
+
+// ---- TEMA OFFLINE FANTASMAGÓRICO ----
+function updateOfflineTheme() {
+  const isOffline = !navigator.onLine;
+  const body = document.body;
+  const badge = document.getElementById('offlineBadge');
+  
+  if (isOffline) {
+    body.classList.add('offline-theme');
+    if (badge) {
+      badge.innerHTML = '⚡ OFFLINE — Modo Fantasma';
+      badge.style.display = 'flex';
+    }
+    console.log('[Theme] Modo fantasma ativado');
+  } else {
+    body.classList.remove('offline-theme');
+    if (badge) {
+      badge.innerHTML = '⚡ Offline';
+      badge.style.display = 'none';
+    }
+    console.log('[Theme] Modo normal ativado');
+  }
+}
+
+// Sobrescrever a função offlineCheck existente ou adicionar listeners
+const originalOfflineCheck = offlineCheck;
+offlineCheck = function() {
+  // Chamar função original se existir
+  if (typeof originalOfflineCheck === 'function') {
+    originalOfflineCheck();
+  }
+  
+  // Adicionar tema
+  updateOfflineTheme();
+  
+  // Listeners adicionais para tema
+  window.removeEventListener('online', updateOfflineTheme);
+  window.removeEventListener('offline', updateOfflineTheme);
+  window.addEventListener('online', updateOfflineTheme);
+  window.addEventListener('offline', updateOfflineTheme);
+};
+
+// Inicializar tema ao carregar
+document.addEventListener('DOMContentLoaded', updateOfflineTheme);
+
+// ---- GESTOS DE TOQUE MELHORADOS ----
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartTime = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+  touchStartTime = Date.now();
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  const touchEndX = e.changedTouches[0].screenX;
+  const touchEndY = e.changedTouches[0].screenY;
+  const deltaX = touchEndX - touchStartX;
+  const deltaY = touchEndY - touchStartY;
+  const deltaTime = Date.now() - touchStartTime;
+  
+  // Swipe horizontal para mudar música (apenas se não estiver arrastando a barra de progresso)
+  if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 100 && deltaTime < 300) {
+    if (!progressBarDragging) {
+      if (deltaX > 0) {
+        prevTrack();
+        showToast('⏮ Faixa anterior');
+      } else {
+        nextTrack();
+        showToast('⏭ Próxima faixa');
+      }
+    }
+  }
+  
+  // Toque duplo na área do player para play/pause
+  if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && deltaTime < 200) {
+    // Verificar se o toque foi na área do player
+    const target = e.target;
+    if (target.closest('.player') || target.closest('.p-cover')) {
+      togglePlay();
+    }
+  }
+}, { passive: true });
+
 // Make functions available globally for HTML onclick handlers
 window.showView = showView;
 window.openAlbum = openAlbum;
