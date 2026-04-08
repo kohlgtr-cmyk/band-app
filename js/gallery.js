@@ -1,8 +1,3 @@
-// =====================================================
-// GALERIA — edite aqui
-// Coloque as imagens em: assets/imagens/gallery/
-// Cada item: src (caminho), alt (acessível), caption (opcional)
-// =====================================================
 
 const galleryPhotos = [
   // Exemplo (descomente e ajuste após colocar os arquivos na pasta):

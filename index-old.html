@@ -1,25 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  media-src 'self' blob:;
+  img-src 'self' data: blob:;
+  connect-src 'self';
+">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>EchoDome</title>
   <meta name="description" content="Discografia EchoDome — letras, player e downloads no seu aparelho." />
   <meta name="theme-color" content="#121212" />
-
-  <!-- Content Security Policy -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self';">
-
-  <!-- Preconnect for performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="css/style.css?v=50" />
-
-  <!-- Preload critical assets -->
-  <link rel="preload" href="js/data.js?v=50" as="script" />
-  <link rel="preload" href="js/app.js?v=50" as="script" />
+  <link rel="stylesheet" href="css/style.css?v=34" />
 </head>
 <body>
 
@@ -45,7 +42,6 @@
     <div class="sidebar-footer">
       <p class="sidebar-tagline">Anti-algoritmo · Uma banda · Um app</p>
       <div id="offlineBadge" class="offline-badge" style="display:none">⚡ Offline</div>
-      <button type="button" class="export-btn" onclick="exportUserData()" title="Exportar dados">💾 Backup</button>
     </div>
   </aside>
 
@@ -69,9 +65,9 @@
       <!-- HOME -->
       <div class="view active" id="view-home">
         <p class="section-label">// Discografia</p>
-        <h1 class="view-title">EchoDome</h1>
-        <p class="view-subtitle">Cada faixa. Cada palavra. Cada história.</p>
-        <div class="section-divider"></div>
+<h1 class="view-title">EchoDome</h1>
+<p class="view-subtitle">Cada faixa. Cada palavra. Cada história.</p>
+<div class="section-divider"></div>
         <h2 class="section-title">Álbuns</h2>
         <div class="albums-grid" id="homeAlbums"></div>
         <h2 class="section-title">Mais ouvidas</h2>
@@ -81,8 +77,8 @@
       <!-- ALBUMS -->
       <div class="view" id="view-albums">
         <p class="section-label">// Discografia</p>
-        <h1 class="view-title">Álbuns</h1>
-        <div class="section-divider"></div>
+<h1 class="view-title">Álbuns</h1>
+<div class="section-divider"></div>
         <div class="albums-grid" id="allAlbums"></div>
       </div>
 
@@ -107,10 +103,10 @@
 
       <!-- ALL SONGS -->
       <div class="view" id="view-all-songs">
-        <p class="section-label">// Discografia</p>
-        <h1 class="view-title">Músicas</h1>
-        <p class="view-subtitle">Cada faixa. Cada palavra. Cada história.</p>
-        <div class="section-divider"></div>
+       <p class="section-label">// Discografia</p>
+<h1 class="view-title">Músicas</h1>
+<p class="view-subtitle">Cada faixa. Cada palavra. Cada história.</p>
+       <div class="section-divider"></div>
         <div class="songs-list" id="allSongsList"></div>
       </div>
 
@@ -132,7 +128,7 @@
     </div>
   </main>
 
-  <!-- PAINEL: letra -->
+  <!-- PAINEL: só letra -->
   <div class="lyrics-panel" id="lyricsPanel" aria-hidden="true">
     <div class="lyrics-header">
       <div class="panel-header-titles">
@@ -146,7 +142,7 @@
     </div>
   </div>
 
-  <!-- PAINEL: sobre a faixa -->
+  <!-- PAINEL: só informações / sobre a faixa -->
   <div class="about-panel" id="aboutPanel" aria-hidden="true">
     <div class="lyrics-header about-panel__header">
       <div class="panel-header-titles">
@@ -161,7 +157,9 @@
     </div>
   </div>
 
-  <!-- PLAYER -->
+  <!-- ============================================================
+       PLAYER — estrutura simples, sem grid
+  ============================================================ -->
   <div class="player" id="player">
 
     <!-- Linha 1: capa + info + botão letra -->
@@ -173,9 +171,6 @@
       </div>
       <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra">
         <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="toggleVisualizer()" id="vizBtn" aria-label="Visualizador" title="Ativar visualizador">
-        <svg viewBox="0 0 24 24"><path d="M3 18h6v-2H3v2zM3 6v2h18V6H3zm0 7h12v-2H3v2z"/></svg>
       </button>
     </div>
 
@@ -206,9 +201,6 @@
       <button type="button" class="p-icon-btn" onclick="toggleRepeat()" id="repeatBtn" aria-label="Repetir faixa" aria-pressed="false">
         <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
       </button>
-      <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer para dormir" title="Timer (30min)">
-        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-      </button>
     </div>
 
     <!-- Volume (só desktop) -->
@@ -219,10 +211,7 @@
 
   </div><!-- /player -->
 
-  <audio id="audio" crossorigin="anonymous"></audio>
-
-  <!-- Visualizer Canvas -->
-  <canvas id="visualizer" class="visualizer-canvas"></canvas>
+  <audio id="audio"></audio>
 
   <div id="galleryLightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada" aria-hidden="true" onclick="if(event.target===this)closeGalleryLightbox()">
     <button type="button" class="gallery-lightbox__close" onclick="closeGalleryLightbox()" aria-label="Fechar">✕</button>
@@ -232,12 +221,8 @@
     </figure>
   </div>
 
-  <!-- Toast notification -->
-  <div id="toast" class="toast"></div>
-
-  <script src="js/modules/visualizer.js?v=50"></script>
-  <script src="js/data.js?v=50"></script>
-  <script src="js/gallery.js?v=50"></script>
-  <script type="module" src="js/app.js?v=50"></script>
+  <script src="js/data.js?v=34"></script>
+  <script src="js/gallery.js?v=34"></script>
+  <script src="js/app.js?v=34"></script>
 </body>
 </html>

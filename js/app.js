@@ -10,9 +10,54 @@ let lyricsOpen = false;
 let aboutPanelOpen = false;
 let galleryLightboxOpen = false;
 let progressBarDragging = false;
+let sleepTimer = null;
+let wakeLock = null;
+let visualizerActive = false;
+let userInteracted = false;
 
-/** Se a faixa já passou deste ponto, “voltar” reinicia do zero; se já estiver no início, vai à faixa anterior. */
-const PREV_AT_START_SEC = 0.5;
+/** Se a faixa já passou deste ponto, "voltar" reinicia do zero; se já estiver no início, vai à faixa anterior. */
+const PREV_AT_START_SEC = 2;
+
+// ---- USER INTERACTION DETECTION ----
+function markUserInteraction() {
+  if (!userInteracted) {
+    userInteracted = true;
+    console.log('[App] Interação detectada - AudioContext liberado');
+  }
+}
+
+document.addEventListener('click', markUserInteraction, { once: true });
+document.addEventListener('touchstart', markUserInteraction, { once: true });
+document.addEventListener('keydown', markUserInteraction, { once: true });
+
+// ---- LAZY LOADING MODULES ----
+const lazyModules = {
+  visualizer: () => import('./modules/visualizer.js'),
+  share: () => import('./modules/share.js')
+};
+
+async function loadModule(name) {
+  if (!lazyModules[name]) {
+    console.error(`Module ${name} not found`);
+    return null;
+  }
+  try {
+    const module = await lazyModules[name]();
+    console.log(`[Lazy] Loaded: ${name}`);
+    return module;
+  } catch (err) {
+    console.error(`[Lazy] Failed to load ${name}:`, err);
+    return null;
+  }
+}
+
+function preloadModule(name, delay = 5000) {
+  setTimeout(() => {
+    if (!document.hidden) {
+      loadModule(name).catch(() => {});
+    }
+  }, delay);
+}
 
 // ---- OFFLINE / DOWNLOAD STATE ----
 let downloadedSongs = JSON.parse(localStorage.getItem('echodome-downloads') || '[]');
@@ -20,11 +65,12 @@ let downloadedSongs = JSON.parse(localStorage.getItem('echodome-downloads') || '
 function saveDownloadState() {
   localStorage.setItem('echodome-downloads', JSON.stringify(downloadedSongs));
 }
+
 function isSongDownloaded(songId) {
   return downloadedSongs.includes(songId);
 }
 
-// ---- PLAY COUNTS (persistido no dispositivo) ----
+// ---- PLAY COUNTS ----
 const PLAY_COUNTS_KEY = 'echodome-play-counts';
 
 function loadPlayCounts() {
@@ -66,9 +112,18 @@ function recordPlay(songId) {
   const k = String(songId);
   playCounts[k] = getPlayCount(songId) + 1;
   savePlayCounts();
+
+  const history = JSON.parse(localStorage.getItem('echodome-history') || '[]');
+  history.push({
+    songId,
+    timestamp: Date.now(),
+    duration: audio.duration || 0,
+    completed: false
+  });
+  if (history.length > 1000) history.shift();
+  localStorage.setItem('echodome-history', JSON.stringify(history));
 }
 
-/** Ordem da home: mais reproduzidas primeiro; empate pelo id da faixa. */
 function getHomeSongList() {
   return songs
     .slice()
@@ -82,24 +137,57 @@ function getHomeSongList() {
 const audio = document.getElementById('audio');
 
 // ---- INIT ----
-document.addEventListener('DOMContentLoaded', () => {
-  renderHomeAlbums();
-  renderHomeSongs();
-  renderAllAlbumsGrid();
-  renderAllSongs();
-  audioEvents();
-  offlineCheck();
-  registerSW();
-  syncMenuAria();
-  setupProgressBar();
-  renderGallery();
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    if (galleryLightboxOpen) closeGalleryLightbox();
-    else if (aboutPanelOpen) closeAboutPanel();
-    else if (lyricsOpen) closeLyrics();
-  });
-});
+function init() {
+  console.log('[Init] Iniciando EchoDome...');
+  
+  try {
+    // Renderizações primeiro (crítico)
+    renderHomeAlbums();
+    renderHomeSongs();
+    renderAllAlbumsGrid();
+    renderAllSongs();
+    renderGallery();
+    
+    console.log('[Init] Renderizações completas');
+    
+    // Eventos (assíncronos, não bloqueantes)
+    audioEvents();
+    offlineCheck();
+    setupProgressBar();
+    setupKeyboardShortcuts();
+    setupTouchGestures();
+    setupWakeLock();
+    
+    // SW em background (não bloqueia renderização)
+    setTimeout(() => {
+      registerSW();
+    }, 100);
+    
+    // Preload módulos opcionais (baixa prioridade)
+    setTimeout(() => {
+      preloadModule('share', 3000);
+    }, 2000);
+    
+    // Escape key handler
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (galleryLightboxOpen) closeGalleryLightbox();
+      else if (aboutPanelOpen) closeAboutPanel();
+      else if (lyricsOpen) closeLyrics();
+    });
+    
+    console.log('[Init] EchoDome pronto');
+  } catch (err) {
+    console.error('[Init] Erro fatal:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  // Delay mínimo para garantir que o navegador respire
+  setTimeout(init, 0);
+}
 
 function syncMenuAria() {
   const menuBtn = document.getElementById('menuBtn');
@@ -110,51 +198,81 @@ function syncMenuAria() {
 
 // ---- SERVICE WORKER ----
 async function registerSW() {
-  if (!('serviceWorker' in navigator)) return;
+  if (!('serviceWorker' in navigator)) {
+    console.log('Service Worker not supported');
+    return;
+  }
+
   try {
-    await navigator.serviceWorker.register('service-worker.js', {
+    const registration = await navigator.serviceWorker.register('service-worker.js', {
       updateViaCache: 'none'
     });
+
+    console.log('SW registered:', registration.scope);
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showToast('Nova versão disponível. Recarregue para atualizar.');
+        }
+      });
+    });
+
     navigator.serviceWorker.addEventListener('message', e => {
       const { type, songId } = e.data;
+
       if (type === 'DOWNLOAD_DONE') {
-        if (!downloadedSongs.includes(songId)) downloadedSongs.push(songId);
-        saveDownloadState();
+        if (!downloadedSongs.includes(songId)) {
+          downloadedSongs.push(songId);
+          saveDownloadState();
+        }
         updateAllDownloadBtns(songId, 'downloaded');
         refreshRows();
+        showToast('Música baixada para offline!');
       }
+
       if (type === 'DOWNLOAD_ERROR') {
         updateAllDownloadBtns(songId, 'error');
         setTimeout(() => updateAllDownloadBtns(songId, 'none'), 3000);
+        showToast('Erro ao baixar música');
       }
+
       if (type === 'DELETE_DONE') {
         downloadedSongs = downloadedSongs.filter(id => id !== songId);
         saveDownloadState();
         updateAllDownloadBtns(songId, 'none');
         refreshRows();
+        showToast('Download removido');
       }
     });
+
   } catch (err) {
-    console.warn('SW nao registrado:', err);
+    console.warn('SW registration failed:', err);
   }
 }
 
 function sendSWMessage(data) {
   if (!('serviceWorker' in navigator)) return;
+
   const send = (sw) => {
     try {
       sw.postMessage(data);
     } catch (e) {
-      console.warn('echodome: postMessage SW falhou', e);
+      console.warn('SW postMessage failed:', e);
     }
   };
+
   if (navigator.serviceWorker.controller) {
     send(navigator.serviceWorker.controller);
     return;
   }
+
   navigator.serviceWorker.ready.then((reg) => {
     const sw = reg.active || reg.waiting;
     if (sw) send(sw);
+  }).catch(err => {
+    console.error('SW ready failed:', err);
   });
 }
 
@@ -162,10 +280,18 @@ function sendSWMessage(data) {
 async function toggleDownload(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song || !song.file) return;
-  if (isSongDownloaded(songId)) {
+
+  const isMarkedDownloaded = isSongDownloaded(songId);
+
+  if (isMarkedDownloaded) {
     updateAllDownloadBtns(songId, 'deleting');
     sendSWMessage({ type: 'DELETE_SONG', url: song.file, songId });
   } else {
+    if (!navigator.onLine) {
+      showToast('Você está offline. Conecte-se para baixar.');
+      return;
+    }
+
     updateAllDownloadBtns(songId, 'downloading');
     sendSWMessage({ type: 'DOWNLOAD_SONG', url: song.file, songId });
   }
@@ -199,7 +325,7 @@ function dlIconSVG(state) {
 
 // ---- RENDER HELPERS ----
 function coverHTML(album) {
-  if (album && album.cover) return '<img src="' + album.cover + '" alt="' + (album.name||'') + '" />';
+  if (album && album.cover) return '<img src="' + album.cover + '" alt="' + (album.name||'') + '" loading="lazy" />';
   return album ? (album.coverEmoji || '🎵') : '🎵';
 }
 
@@ -231,7 +357,7 @@ function songRowHTML(song, num, opts) {
   const isDownloaded = isSongDownloaded(song.id);
 
   const thumb = album && album.cover
-    ? '<img src="' + album.cover + '" alt="" />'
+    ? '<img src="' + album.cover + '" alt="" loading="lazy" />'
     : (album ? album.coverEmoji || '🎵' : '🎵');
 
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
@@ -277,7 +403,6 @@ function songRowHTML(song, num, opts) {
   );
 }
 
-// Injeta keyframe de animação uma vez
 (function injectSpinKeyframe() {
   if (document.getElementById('echodl-style')) return;
   const s = document.createElement('style');
@@ -288,17 +413,28 @@ function songRowHTML(song, num, opts) {
 
 // ---- RENDERS ----
 function renderHomeAlbums() {
-  document.getElementById('homeAlbums').innerHTML = albums.map(albumCardHTML).join('');
+  const el = document.getElementById('homeAlbums');
+  if (!el) return console.warn('homeAlbums não encontrado');
+  el.innerHTML = albums.map(albumCardHTML).join('');
 }
+
 function renderHomeSongs() {
+  const el = document.getElementById('homeSongs');
+  if (!el) return;
   const list = getHomeSongList();
-  document.getElementById('homeSongs').innerHTML = list.map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
+  el.innerHTML = list.map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
 }
+
 function renderAllAlbumsGrid() {
-  document.getElementById('allAlbums').innerHTML = albums.map(albumCardHTML).join('');
+  const el = document.getElementById('allAlbums');
+  if (!el) return;
+  el.innerHTML = albums.map(albumCardHTML).join('');
 }
+
 function renderAllSongs() {
-  document.getElementById('allSongsList').innerHTML = songs.map((s, i) =>
+  const el = document.getElementById('allSongsList');
+  if (!el) return;
+  el.innerHTML = songs.map((s, i) =>
     songRowHTML(s, i + 1, { musicsPage: true })
   ).join('');
 }
@@ -312,38 +448,44 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+// ---- LAZY LOADING GALLERY ----
 function renderGallery() {
   const root = document.getElementById('galleryGrid');
   if (!root) return;
+
   const list = typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos) ? galleryPhotos : [];
   if (!list.length) {
-    root.innerHTML =
-      '<p class="gallery-empty">Nenhuma foto na galeria. Coloque imagens em <strong>assets/imagens/gallery/</strong> e cadastre-as em <strong>js/gallery.js</strong>.</p>';
+    root.innerHTML = '<p class="gallery-empty">Nenhuma foto na galeria.</p>';
     return;
   }
-  root.innerHTML = list
-    .map((item, i) => {
-      const src = escapeHtml(item.src);
-      const alt = escapeHtml(item.alt || item.caption || 'Foto da galeria');
-      const cap = item.caption
-        ? '<span class="gallery-item__caption">' + escapeHtml(item.caption) + '</span>'
-        : '';
-      return (
-        '<button type="button" class="gallery-item" onclick="openGalleryLightbox(' +
-        i +
-        ')" aria-label="' +
-        alt +
-        '">' +
-        '<span class="gallery-item__frame"><img src="' +
-        src +
-        '" alt="' +
-        alt +
-        '" loading="lazy" decoding="async" /></span>' +
-        cap +
-        '</button>'
-      );
-    })
-    .join('');
+
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        img.src = img.dataset.src;
+        img.classList.add('loaded');
+        observer.unobserve(img);
+      }
+    });
+  }, { rootMargin: '50px' });
+
+  root.innerHTML = list.map((item, i) => {
+    const src = escapeHtml(item.src);
+    const alt = escapeHtml(item.alt || item.caption || 'Foto da galeria');
+    const cap = item.caption ? `<span class="gallery-item__caption">${escapeHtml(item.caption)}</span>` : '';
+
+    return `
+      <button type="button" class="gallery-item" onclick="openGalleryLightbox(${i})" aria-label="${alt}">
+        <span class="gallery-item__frame">
+          <img data-src="${src}" alt="${alt}" loading="lazy" decoding="async" class="lazy-img"/>
+        </span>
+        ${cap}
+      </button>
+    `;
+  }).join('');
+
+  root.querySelectorAll('.lazy-img').forEach(img => imageObserver.observe(img));
 }
 
 function openGalleryLightbox(index) {
@@ -400,17 +542,36 @@ function openAlbum(albumId) {
 }
 
 // ---- PLAYBACK ----
-function playSong(songId, q) {
+async function playSong(songId, q) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
+
   recordPlay(songId);
   currentTrack = song;
   queue = q || songs;
   queueIndex = queue.findIndex(s => s.id === songId);
-  audio.src = song.file;
+
+  const absoluteUrl = new URL(song.file, window.location.origin).href;
+  audio.src = absoluteUrl;
   audio.volume = document.getElementById('volSlider').value / 100;
-  audio.play().catch(() => {});
-  playing = true;
+
+  try {
+    await audio.play();
+    playing = true;
+
+    requestWakeLock();
+    preloadNextSong();
+    
+    // REMOVIDO: initVisualizer() daqui - agora só via toggleVisualizer
+    
+  } catch (err) {
+    console.error('Playback failed:', err);
+    playing = false;
+    if (!navigator.onLine && !isSongDownloaded(songId)) {
+      showToast('Música não disponível offline');
+    }
+  }
+
   updatePlayerUI();
   refreshRows();
 }
@@ -430,6 +591,12 @@ function togglePlay() {
   playing ? audio.pause() : audio.play();
   playing = !playing;
   updatePlayIcon();
+
+  if (playing) {
+    requestWakeLock();
+  } else {
+    releaseWakeLock();
+  }
 }
 
 function prevTrack() {
@@ -458,12 +625,104 @@ function toggleShuffle() {
   btn.classList.toggle('active', shuffle);
   btn.setAttribute('aria-pressed', shuffle ? 'true' : 'false');
 }
+
 function toggleRepeat() {
   repeat = !repeat;
   const btn = document.getElementById('repeatBtn');
   btn.classList.toggle('active', repeat);
   btn.setAttribute('aria-pressed', repeat ? 'true' : 'false');
 }
+
+// ---- SMART FEATURES ----
+function preloadNextSong() {
+  if (!queue.length || queueIndex >= queue.length - 1) return;
+
+  const nextSong = queue[queueIndex + 1];
+  if (isSongDownloaded(nextSong.id)) return;
+
+  fetch(nextSong.file, { mode: 'no-cors' })
+    .then(r => r.blob())
+    .then(blob => {
+      if (blob.size > 0) {
+        caches.open('echodome-music-v50').then(cache => {
+          cache.put(nextSong.file, new Response(blob));
+        });
+      }
+    })
+    .catch(() => {});
+}
+
+function toggleSleepTimer() {
+  if (sleepTimer) {
+    clearTimeout(sleepTimer);
+    sleepTimer = null;
+    showToast('Timer cancelado');
+    document.getElementById('sleepBtn').classList.remove('active');
+  } else {
+    const minutes = 30;
+    sleepTimer = setTimeout(() => {
+      audio.pause();
+      playing = false;
+      updatePlayIcon();
+      showToast('Timer encerrado - música pausada');
+      sleepTimer = null;
+    }, minutes * 60 * 1000);
+
+    showToast(`Timer de ${minutes}min ativado`);
+    document.getElementById('sleepBtn').classList.add('active');
+  }
+}
+
+async function setupWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+
+  audio.addEventListener('play', requestWakeLock);
+  audio.addEventListener('pause', releaseWakeLock);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && playing) {
+      requestWakeLock();
+    }
+  });
+}
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLock) return;
+
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => {
+      wakeLock = null;
+    });
+  } catch (err) {
+    console.log('Wake lock failed:', err);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) {
+    wakeLock.release();
+    wakeLock = null;
+  }
+}
+
+// ---- VISUALIZER (VERSÃO SIMPLES) ----
+function toggleVisualizer() {
+  // Clique no botão já é interação do usuário — marca diretamente
+  markUserInteraction();
+
+  if (!window.Visualizer) {
+    console.warn('[App] Visualizer não disponível');
+    return;
+  }
+
+  const isFullscreen = window.Visualizer.toggleFullscreen();
+  visualizerActive = isFullscreen;
+
+  const btn = document.getElementById('vizBtn');
+  btn.classList.toggle('active', isFullscreen);
+}
+
+// ---- PROGRESS BAR ----
 function syncProgressUI(t) {
   if (!audio.duration) return;
   const pct = (t / audio.duration) * 100;
@@ -487,6 +746,7 @@ function setupProgressBar() {
   const bar = document.getElementById('pBar');
   let onMove = null;
   let onUp = null;
+
   bar.addEventListener('pointerdown', (e) => {
     if (!currentTrack) return;
     if (!audio.duration) return;
@@ -495,11 +755,13 @@ function setupProgressBar() {
     seekFromClientX(e.clientX);
     progressBarDragging = true;
     bar.classList.add('is-scrubbing');
+
     onMove = (ev) => {
       if (!progressBarDragging) return;
       ev.preventDefault();
       seekFromClientX(ev.clientX);
     };
+
     onUp = () => {
       progressBarDragging = false;
       bar.classList.remove('is-scrubbing');
@@ -509,6 +771,7 @@ function setupProgressBar() {
       onMove = null;
       onUp = null;
     };
+
     document.addEventListener('pointermove', onMove, { passive: false });
     document.addEventListener('pointerup', onUp);
     document.addEventListener('pointercancel', onUp);
@@ -523,12 +786,37 @@ function audioEvents() {
     if (!audio.duration || progressBarDragging) return;
     syncProgressUI(audio.currentTime);
   });
+
   audio.addEventListener('loadedmetadata', () => {
     document.getElementById('pTotal').textContent = fmt(audio.duration);
   });
-  audio.addEventListener('ended', () => repeat ? audio.play() : nextTrack());
-  audio.addEventListener('play',  () => { playing = true;  updatePlayIcon(); });
-  audio.addEventListener('pause', () => { playing = false; updatePlayIcon(); });
+
+  audio.addEventListener('ended', () => {
+    if (repeat) {
+      audio.play();
+    } else {
+      nextTrack();
+    }
+  });
+
+  audio.addEventListener('play', () => {
+    playing = true;
+    updatePlayIcon();
+    requestWakeLock();
+    
+    // Só tenta visualizador se já houver interação e estiver ativo
+    if (userInteracted && visualizerActive) {
+      requestAnimationFrame(() => {
+        initVisualizer();
+      });
+    }
+  });
+
+  audio.addEventListener('pause', () => {
+    playing = false;
+    updatePlayIcon();
+    releaseWakeLock();
+  });
 }
 
 // ---- UI ----
@@ -536,24 +824,13 @@ function updatePlayerUI() {
   const album = albums.find(a => a.id === currentTrack.albumId);
   document.getElementById('pTitle').textContent = currentTrack.title;
   document.getElementById('pArtist').textContent = album ? album.name : BAND_NAME;
+
   const coverEl = document.getElementById('pCover');
   if (album && album.cover) coverEl.innerHTML = '<img src="' + album.cover + '" alt="" />';
   else coverEl.innerHTML = '<span>' + (album ? album.coverEmoji || '🎵' : '🎵') + '</span>';
-  updatePlayIcon();
 
-  if ('mediaSession' in navigator) {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.title,
-      artist: BAND_NAME,
-      album: album ? album.name : '',
-      artwork: album && album.cover ? [{ src: album.cover, sizes: '512x512', type: 'image/jpeg' }] : []
-    });
-    navigator.mediaSession.setActionHandler('play',          () => audio.play());
-    navigator.mediaSession.setActionHandler('pause',         () => audio.pause());
-    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack());
-    navigator.mediaSession.setActionHandler('nexttrack',     () => nextTrack());
-    navigator.mediaSession.setActionHandler('seekto',        (d) => { if (d.seekTime) audio.currentTime = d.seekTime; });
-  }
+  updatePlayIcon();
+  updateMediaSession();
 }
 
 function updatePlayIcon() {
@@ -563,13 +840,33 @@ function updatePlayIcon() {
   document.getElementById('playBtn').setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
 }
 
+function updateMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+
+  const album = albums.find(a => a.id === currentTrack.albumId);
+
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: currentTrack.title,
+    artist: BAND_NAME,
+    album: album ? album.name : '',
+    artwork: album && album.cover ? [{ src: album.cover, sizes: '512x512', type: 'image/jpeg' }] : []
+  });
+
+  navigator.mediaSession.setActionHandler('play', () => audio.play());
+  navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+  navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+  navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+  navigator.mediaSession.setActionHandler('seekto', (d) => {
+    if (d.seekTime) audio.currentTime = d.seekTime;
+  });
+}
+
 function refreshRows() {
-  // Home pode estar em segundo plano: sempre atualiza plays e ordem ao tocar música
   renderHomeSongs();
   const active = document.querySelector('.view.active');
   if (!active) return;
   if (active.id === 'view-all-songs') renderAllSongs();
-  if (active.id === 'view-album-detail') {
+  if (active.id === 'view-album-detail' && currentAlbumId) {
     const s = songs.filter(x => x.albumId === currentAlbumId);
     document.getElementById('detailSongs').innerHTML = s.map((x, i) => songRowHTML(x, i + 1)).join('');
   }
@@ -603,9 +900,7 @@ function showSongAbout(songId) {
   const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
   document.getElementById('aboutPanelTitle').textContent = song.title;
   const body = document.getElementById('aboutPanelBody');
-  body.textContent = hasAbout
-    ? song.about
-    : 'Nenhuma informação cadastrada para esta faixa.';
+  body.textContent = hasAbout ? song.about : 'Nenhuma informação cadastrada para esta faixa.';
   body.classList.toggle('is-empty', !hasAbout);
   const panel = document.getElementById('aboutPanel');
   panel.classList.add('open');
@@ -645,6 +940,7 @@ function toggleSidebar() {
   document.getElementById('overlay').classList.toggle('show');
   syncMenuAria();
 }
+
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
@@ -653,11 +949,158 @@ function closeSidebar() {
 
 // ---- OFFLINE ----
 function offlineCheck() {
-  const b = document.getElementById('offlineBadge');
-  const update = () => b.style.display = navigator.onLine ? 'none' : 'flex';
+  const badge = document.getElementById('offlineBadge');
+  let wasOffline = false;
+
+  const update = () => {
+    const isOffline = !navigator.onLine;
+    if (badge) badge.style.display = isOffline ? 'flex' : 'none';
+
+    if (isOffline && !wasOffline) {
+      showToast('⚡ Modo offline ativado');
+    } else if (!isOffline && wasOffline) {
+      showToast('✓ Conexão restaurada');
+    }
+    wasOffline = isOffline;
+
+    document.querySelectorAll('.dl-btn').forEach(btn => {
+      const songId = parseInt(btn.dataset.dl);
+      const isDownloaded = isSongDownloaded(songId);
+
+      if (isOffline && !isDownloaded) {
+        btn.disabled = true;
+        btn.style.opacity = '0.3';
+        btn.title = 'Indisponível offline';
+      } else {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        const state = isDownloaded ? 'downloaded' : 'none';
+        btn.title = state === 'downloaded' ? 'Remover download' : 'Baixar para ouvir offline';
+      }
+    });
+  };
+
   update();
   window.addEventListener('online', update);
   window.addEventListener('offline', update);
+}
+
+// ---- KEYBOARD SHORTCUTS ----
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+
+    switch(e.key) {
+      case ' ':
+        e.preventDefault();
+        togglePlay();
+        break;
+      case 'ArrowRight':
+        if (e.ctrlKey) nextTrack();
+        break;
+      case 'ArrowLeft':
+        if (e.ctrlKey) prevTrack();
+        break;
+      case 'l':
+      case 'L':
+        toggleLyrics();
+        break;
+      case 's':
+      case 'S':
+        if (e.ctrlKey) {
+          e.preventDefault();
+          toggleShuffle();
+        }
+        break;
+      case 'r':
+      case 'R':
+        toggleRepeat();
+        break;
+      case 'm':
+      case 'M':
+        audio.muted = !audio.muted;
+        showToast(audio.muted ? '🔇 Mudo' : '🔊 Som ativado');
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        audio.volume = Math.min(1, audio.volume + 0.1);
+        document.getElementById('volSlider').value = audio.volume * 100;
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        audio.volume = Math.max(0, audio.volume - 0.1);
+        document.getElementById('volSlider').value = audio.volume * 100;
+        break;
+    }
+  });
+}
+
+// ---- TOUCH GESTURES ----
+function setupTouchGestures() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    const touchEndX = e.changedTouches[0].screenX;
+    const touchEndY = e.changedTouches[0].screenY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    if (Math.abs(deltaX) > 100 && Math.abs(deltaY) < 50) {
+      if (deltaX > 0) prevTrack();
+      else nextTrack();
+    }
+  }, { passive: true });
+}
+
+// ---- TOAST NOTIFICATIONS ----
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 3000);
+}
+
+// ---- DATA EXPORT/IMPORT ----
+function exportUserData() {
+  const data = {
+    playCounts,
+    downloadedSongs,
+    history: localStorage.getItem('echodome-history'),
+    trends: localStorage.getItem('echodome-trends'),
+    timestamp: Date.now()
+  };
+
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `echodome-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast('Backup exportado!');
+}
+
+async function shareSong() {
+  if (!currentTrack) {
+    showToast('Nenhuma música tocando');
+    return;
+  }
+
+  const shareModule = await loadModule('share');
+  if (shareModule && shareModule.shareSong) {
+    shareModule.shareSong(currentTrack, BAND_NAME);
+  }
 }
 
 // ---- UTILS ----
@@ -665,3 +1108,31 @@ function fmt(s) {
   if (isNaN(s)) return '0:00';
   return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 }
+
+// Make functions available globally for HTML onclick handlers
+window.showView = showView;
+window.openAlbum = openAlbum;
+window.playSong = playSong;
+window.playAlbum = playAlbum;
+window.playAll = playAll;
+window.togglePlay = togglePlay;
+window.prevTrack = prevTrack;
+window.nextTrack = nextTrack;
+window.toggleShuffle = toggleShuffle;
+window.toggleRepeat = toggleRepeat;
+window.toggleLyrics = toggleLyrics;
+window.showLyrics = showLyrics;
+window.showSongAbout = showSongAbout;
+window.closeAboutPanel = closeAboutPanel;
+window.closeLyrics = closeLyrics;
+window.handleSearch = handleSearch;
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
+window.toggleDownload = toggleDownload;
+window.openGalleryLightbox = openGalleryLightbox;
+window.closeGalleryLightbox = closeGalleryLightbox;
+window.setVolume = setVolume;
+window.toggleSleepTimer = toggleSleepTimer;
+window.toggleVisualizer = toggleVisualizer;
+window.exportUserData = exportUserData;
+window.shareSong = shareSong;

@@ -2,7 +2,7 @@
 
 *, *::before, *::after {
   margin: 0; padding: 0; box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: transparent; /* ← remove o flash de clique */
   -webkit-touch-callout: none;
 }
 
@@ -120,21 +120,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   letter-spacing: 1px; text-transform: uppercase;
 }
 
-.export-btn {
-  padding: 8px 14px;
-  background: var(--gold-dim);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--gold);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background .15s;
-}
-.export-btn:hover {
-  background: var(--gold);
-  color: #000;
-}
-
 /* ===================== TOPBAR ===================== */
 .topbar {
   display: flex; align-items: center; gap: 12px;
@@ -168,6 +153,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .view { display: none; }
 .view.active { display: block; }
 
+/* Cabeçalho de seção estilo EchoDome */
 .view-title {
   font-family: 'Oswald', sans-serif;
   font-size: 42px; font-weight: 700;
@@ -197,39 +183,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   width: 100%; height: 1px;
   background: linear-gradient(90deg, var(--gold) 0%, transparent 60%);
   margin-bottom: 24px;
-}
-
-/* ===================== TOAST NOTIFICATIONS ===================== */
-.toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--gold);
-  color: #000;
-  padding: 12px 20px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  transform: translateX(150%);
-  transition: transform 0.3s ease;
-  z-index: 1000;
-  max-width: 300px;
-}
-.toast.show {
-  transform: translateX(0);
-}
-
-/* ===================== VISUALIZER ===================== */
-.visualizer-canvas {
-  position: fixed;
-  bottom: var(--ph-desk);
-  left: var(--sw);
-  right: 0;
-  height: 60px;
-  opacity: 0.3;
-  pointer-events: none;
-  z-index: 40;
-  display: none;
 }
 
 /* ===================== GALERIA ===================== */
@@ -276,11 +229,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.gallery-item__frame img.loaded {
-  opacity: 1;
 }
 .gallery-item__caption {
   font-size: 11px;
@@ -448,14 +396,14 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 }
 .song-row:hover .song-lbtn { opacity: 1; }
 
-/* Botão de download */
+/* Botão de download — sempre visível */
 .dl-btn {
   background: none; border: none;
   cursor: pointer; padding: 4px; border-radius: 3px;
   display: flex; align-items: center; justify-content: center;
   opacity: 1 !important;
   color: rgba(255,255,255,0.35);
-  transition: color .15s, opacity .15s;
+  transition: color .15s;
   width: 32px; height: 32px; flex-shrink: 0;
 }
 .dl-btn:hover { color: var(--t) !important; }
@@ -463,10 +411,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .dl-btn[data-dl-state="downloading"],
 .dl-btn[data-dl-state="deleting"] { color: var(--t2) !important; }
 .dl-btn[data-dl-state="error"] { color: #e05555 !important; }
-.dl-btn:disabled {
-  opacity: 0.3 !important;
-  cursor: not-allowed;
-}
 .dl-btn svg { width: 16px; height: 16px; display: block; flex-shrink: 0; }
 .song-lbtn svg { width: 15px; height: 15px; fill: currentColor; }
 .song-lbtn:hover { color: var(--gold); }
@@ -479,6 +423,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 .song-row--plays {
   grid-template-columns: 36px 44px 1fr auto auto 58px;
 }
+/* Página Músicas: coluna extra (ícone dourado “Sobre”) entre letra e download */
 .song-row--musics {
   grid-template-columns: 36px 44px 1fr auto auto auto 52px;
 }
@@ -905,20 +850,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
     gap: 0;
   }
 
-  .visualizer-canvas {
-    left: 0;
-    bottom: var(--ph);
-  }
-
-  .toast {
-    left: 20px;
-    right: 20px;
-    transform: translateY(-150%);
-  }
-  .toast.show {
-    transform: translateY(0);
-  }
-
   .player-row { display: flex !important; align-items: center; }
   .player-row-info { flex: 0 0 auto; gap: 10px; padding-bottom: 6px; }
   .player-row-progress { flex: 0 0 auto; gap: 8px; padding-bottom: 4px; }
@@ -937,6 +868,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .lyrics-panel,
   .about-panel { width: 100%; right: -100%; bottom: var(--ph); }
 
+  /* Fontes menores no mobile */
   .view-title { font-size: 26px; letter-spacing: 2px; }
   .view-subtitle { font-size: 12px; }
   .section-label { font-size: 10px; letter-spacing: 2px; }
@@ -954,6 +886,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .content { padding: 16px 16px 24px; }
   .topbar { padding: 12px 16px; }
 
+  /* Em mobile: remove coluna do número, ajusta grid */
   .song-row {
     grid-template-columns: 44px 1fr auto auto 52px;
   }
@@ -971,6 +904,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .song-dur--with-plays { gap: 2px; }
   .song-plays { font-size: 10px; }
 
+  /* Esconde número da faixa no mobile */
   .song-num { display: none; }
 }
 
@@ -981,36 +915,11 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   animation: spin 1s linear infinite;
   display: block;
 }
-
-/* Visualizador Fullscreen */
-#visualizer-overlay {
-  backdrop-filter: blur(20px);
-  background: linear-gradient(135deg, rgba(13, 17, 23, 0.98) 0%, rgba(26, 31, 46, 0.95) 50%, rgba(13, 17, 23, 0.98) 100%) !important;
+.dl-btn.downloaded svg path {
+  fill: var(--green);
 }
-
-#visualizer-canvas {
-  filter: contrast(1.1) saturate(1.2);
-}
-
-/* Animação suave ao entrar */
-#visualizer-overlay[style*="display: flex"] {
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-#visualizer-overlay {
-  animation: fadeIn 0.4s ease;
-}
-
-#visualizer-overlay[style*="display: flex"] {
-  display: flex !important;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+.offline-dot {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 4px;
 }
