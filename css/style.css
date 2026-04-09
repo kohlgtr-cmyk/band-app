@@ -118,7 +118,9 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   border: 1px solid var(--border);
   font-size: 11px; color: var(--t2);
   letter-spacing: 1px; text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px;
 }
+.offline-badge svg { flex-shrink: 0; }
 
 .export-btn {
   padding: 8px 14px;
@@ -214,7 +216,11 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   transition: transform 0.3s ease;
   z-index: 1000;
   max-width: 300px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.toast svg { flex-shrink: 0; fill: #000; }
 .toast.show {
   transform: translateX(0);
 }
@@ -1121,6 +1127,13 @@ body.offline-theme .offline-badge {
   color: #00d4ff;
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
 }
+
+/* Toast no modo fantasma usa fundo ciano escuro */
+body.offline-theme .toast {
+  background: #00d4ff;
+  color: #000;
+}
+body.offline-theme .toast svg { fill: #000; }
 
 body.offline-theme .lyrics-panel,
 body.offline-theme .about-panel {
