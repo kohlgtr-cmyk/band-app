@@ -160,6 +160,17 @@ async function toggleDownload(songId) {
   }
 }
 
+async function downloadAllSongs() {
+  if (!navigator.onLine) { showToast('Você está offline. Conecte-se para baixar.'); return; }
+  const pending = songs.filter(s => s.file && !isSongDownloaded(s.id));
+  if (!pending.length) { showToast('Todas as músicas já estão baixadas!'); return; }
+  showToast('Baixando ' + pending.length + ' música' + (pending.length > 1 ? 's' : '') + '…');
+  pending.forEach(song => {
+    updateAllDownloadBtns(song.id, 'downloading');
+    sendSWMessage({ type: 'DOWNLOAD_SONG', url: song.file, songId: song.id });
+  });
+}
+
 function updateAllDownloadBtns(songId, state) {
   document.querySelectorAll('[data-dl="' + songId + '"]').forEach(btn => {
     btn.dataset.dlState = state;
@@ -1088,6 +1099,7 @@ window.handleSearch      = handleSearch;
 window.toggleSidebar     = toggleSidebar;
 window.closeSidebar      = closeSidebar;
 window.toggleDownload    = toggleDownload;
+window.downloadAllSongs  = downloadAllSongs;
 window.openGalleryLightbox  = openGalleryLightbox;
 window.closeGalleryLightbox = closeGalleryLightbox;
 window.setVolume         = setVolume;
