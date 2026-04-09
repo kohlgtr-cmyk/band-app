@@ -624,6 +624,12 @@ window.Visualizer = {
 
     if (this.isFullscreen) {
       overlay.classList.add('open');
+      // Sincroniza tema offline — o overlay pode ter sido criado depois do offlineCheck rodar
+      if (document.body.classList.contains('offline-theme')) {
+        overlay.classList.add('offline-theme');
+      } else {
+        overlay.classList.remove('offline-theme');
+      }
       document.body.style.overflow = 'hidden';
       this._resize();
       this._updateTrackInfo();
@@ -674,6 +680,23 @@ window.Visualizer = {
         user-select: none;
       }
       #viz-overlay.open { display: flex; }
+      /* Tema offline — espelha a paleta do offline-theme do app */
+      #viz-overlay.offline-theme {
+        background: linear-gradient(160deg, #0d1117 0%, #1a1a2e 50%, #0d1117 100%);
+      }
+      #viz-overlay.offline-theme .viz-title { color: #7eb8f7; }
+      #viz-overlay.offline-theme .viz-close-btn {
+        background: rgba(100,160,240,.15);
+        border-color: rgba(100,160,240,.5);
+        color: #7eb8f7;
+      }
+      #viz-overlay.offline-theme .viz-close-btn:hover { background: #5a9fd4; color: #000; }
+      #viz-overlay.offline-theme .viz-ctrl-play { background: #5a9fd4; box-shadow: 0 0 24px rgba(90,159,212,.4); }
+      #viz-overlay.offline-theme .viz-ctrl-play:hover { background: #6db0e8; }
+      #viz-overlay.offline-theme .viz-progress-fill,
+      #viz-overlay.offline-theme .viz-progress-thumb { background: #7eb8f7; }
+      #viz-overlay.offline-theme .viz-sec-btn:hover,
+      #viz-overlay.offline-theme .viz-sec-btn.active { border-color: #7eb8f7; color: #7eb8f7; background: rgba(90,159,212,.2); }
 
       #viz-canvas {
         position: absolute; inset: 0;

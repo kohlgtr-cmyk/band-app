@@ -113,8 +113,8 @@ async function registerSW() {
       const { type, songId } = e.data;
       if (type === 'DOWNLOAD_DONE') {
         if (!downloadedSongs.includes(songId)) { downloadedSongs.push(songId); saveDownloadState(); }
-        updateAllDownloadBtns(songId, 'downloaded');
         refreshRows();
+        updateAllDownloadBtns(songId, 'downloaded');
         showToast('Música baixada para offline!');
       }
       if (type === 'DOWNLOAD_ERROR') {
@@ -125,8 +125,8 @@ async function registerSW() {
       if (type === 'DELETE_DONE') {
         downloadedSongs = downloadedSongs.filter(id => id !== songId);
         saveDownloadState();
-        updateAllDownloadBtns(songId, 'none');
         refreshRows();
+        updateAllDownloadBtns(songId, 'none');
         showToast('Download removido');
       }
     });
@@ -788,6 +788,9 @@ function offlineCheck() {
 
   const applyGhostTheme = (isOffline) => {
     document.body.classList.toggle('offline-theme', isOffline);
+    // Aplica o tema também ao overlay do visualizador fullscreen
+    const vizOverlay = document.getElementById('viz-overlay');
+    if (vizOverlay) vizOverlay.classList.toggle('offline-theme', isOffline);
     if (badge) {
       badge.style.display = isOffline ? 'flex' : 'none';
       badge.innerHTML = isOffline
