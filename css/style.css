@@ -825,8 +825,8 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   cursor: grab; position: relative;
   transition: height .15s;
   touch-action: none;
-  -webkit-user-select: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 .p-bar:hover { height: 5px; }
 .p-bar.is-scrubbing {
@@ -860,7 +860,7 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   height: 3px; background: var(--bg4); border-radius: 2px; cursor: pointer;
 }
 .player-row-volume input[type=range]::-webkit-slider-thumb {
-  -webkit-appearance: none; appearance: none; width: 11px; height: 11px;
+  -webkit-appearance: none; width: 11px; height: 11px;
   background: var(--gold); border-radius: 50%;
 }
 
@@ -1630,20 +1630,139 @@ body.offline-theme .eq-master-slider::-webkit-slider-thumb {
     border-top: 1px solid var(--border);
     border-radius: 20px 20px 0 0;
   }
-  
-  .eq-panel.open {
-    right: 0;
-  }
-  
-  .eq-sliders {
-    padding: 20px 10px;
-  }
-  
-  .eq-slider {
-    width: 100px;
-  }
-  
-  .eq-band label {
-    font-size: 9px;
-  }
+  .eq-panel.open { right: 0; }
+  .eq-sliders { padding: 20px 10px; }
+  .eq-slider { width: 100px; }
+  .eq-band label { font-size: 9px; }
+}
+
+/* ===================== VOLUME SLIDER — VISUAL SYNC ===================== */
+/* Todos os sliders de volume com aparência consistente */
+#volSlider,
+.eq-master-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--bg4);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  transition: background .2s;
+}
+#volSlider::-webkit-slider-thumb,
+.eq-master-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(200,135,74,.5);
+  transition: transform .15s, box-shadow .15s;
+}
+#volSlider::-webkit-slider-thumb:hover,
+.eq-master-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 12px rgba(200,135,74,.8);
+}
+#volSlider::-moz-range-thumb,
+.eq-master-slider::-moz-range-thumb {
+  width: 13px; height: 13px;
+  background: var(--gold);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+/* Ghost mode nos sliders de volume */
+body.offline-theme #volSlider::-webkit-slider-thumb,
+body.offline-theme .eq-master-slider::-webkit-slider-thumb {
+  background: #00d4ff;
+  box-shadow: 0 0 10px rgba(0,212,255,.7);
+}
+body.offline-theme #volSlider::-moz-range-thumb,
+body.offline-theme .eq-master-slider::-moz-range-thumb {
+  background: #00d4ff;
+}
+
+/* ===================== TEMA FANTASMA — NOVO VISUALIZADOR ===================== */
+/* Aplica quando body.offline-theme E o overlay viz estiver aberto */
+body.offline-theme #viz-overlay {
+  background: linear-gradient(160deg, #040810 0%, #091220 100%) !important;
+}
+
+body.offline-theme #viz-overlay .viz-close-btn {
+  background: rgba(0,212,255,.12);
+  border-color: rgba(0,212,255,.5);
+  color: #00d4ff;
+}
+body.offline-theme #viz-overlay .viz-close-btn:hover {
+  background: #00d4ff;
+  color: #000;
+}
+
+body.offline-theme #viz-overlay .viz-title {
+  color: #00d4ff;
+  text-shadow: 0 0 30px rgba(0,212,255,.6), 0 0 60px rgba(94,234,212,.3);
+  animation: ghost-title-pulse 3s ease-in-out infinite alternate;
+}
+@keyframes ghost-title-pulse {
+  from { text-shadow: 0 0 15px rgba(0,212,255,.4); }
+  to   { text-shadow: 0 0 40px rgba(0,212,255,.9), 0 0 70px rgba(94,234,212,.5); }
+}
+
+body.offline-theme #viz-overlay .viz-ctrl-play {
+  background: #00d4ff;
+  box-shadow: 0 0 28px rgba(0,212,255,.7);
+}
+body.offline-theme #viz-overlay .viz-ctrl-play:hover {
+  background: #5eead4;
+  box-shadow: 0 0 42px rgba(0,212,255,.9);
+}
+body.offline-theme #viz-overlay .viz-ctrl-btn {
+  border-color: rgba(0,212,255,.3);
+  color: #00d4ff;
+}
+body.offline-theme #viz-overlay .viz-ctrl-btn:hover {
+  background: rgba(0,212,255,.2);
+  border-color: #00d4ff;
+}
+
+body.offline-theme #viz-overlay .viz-progress-fill {
+  background: linear-gradient(90deg, #00d4ff, #5eead4);
+  box-shadow: 0 0 8px rgba(0,212,255,.6);
+}
+body.offline-theme #viz-overlay .viz-progress-thumb { background: #5eead4; }
+
+body.offline-theme #viz-overlay .viz-sec-btn {
+  border-color: rgba(0,212,255,.25);
+  color: rgba(0,212,255,.8);
+}
+body.offline-theme #viz-overlay .viz-sec-btn:hover,
+body.offline-theme #viz-overlay .viz-sec-btn.active {
+  border-color: #00d4ff;
+  background: rgba(0,212,255,.2);
+  color: #00d4ff;
+}
+
+body.offline-theme #viz-overlay .viz-panel {
+  background: rgba(4,8,18,.96);
+  border-color: rgba(0,212,255,.25);
+}
+body.offline-theme #viz-overlay .viz-panel-header { color: #00d4ff; }
+body.offline-theme #viz-overlay .viz-eq-val { color: #00d4ff; }
+body.offline-theme #viz-overlay .viz-eq-slider { accent-color: #00d4ff; }
+body.offline-theme #viz-overlay select#viz-eq-preset {
+  background: rgba(0,212,255,.08);
+  border-color: rgba(0,212,255,.3);
+  color: #e0f2f1;
+}
+body.offline-theme #viz-overlay .viz-eq-reset,
+body.offline-theme #viz-overlay .viz-mixer-reset {
+  border-color: rgba(0,212,255,.3);
+  color: #00d4ff;
+}
+body.offline-theme #viz-overlay .viz-mute-btn.active {
+  background: rgba(0,212,255,.2);
+  border-color: #00d4ff;
+  color: #00d4ff;
 }

@@ -72,6 +72,18 @@ function init() {
       else if (eqPanelOpen)    toggleEqPanel();
     });
 
+    // Sincroniza TODOS os sliders de volume via event delegation
+    // Funciona para #volSlider, .eq-master-slider e qualquer outro que apareça
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'volSlider' || e.target.classList.contains('eq-master-slider')) {
+        setVolume(e.target.value);
+      }
+    });
+
+    // Aplica volume inicial igual em todos os controles
+    const initialVol = document.getElementById('volSlider')?.value ?? 80;
+    setVolume(initialVol);
+
     console.log('[Init] EchoDome pronto');
   } catch (err) {
     console.error('[Init] Erro fatal:', err);
@@ -619,9 +631,27 @@ function setupProgressBar() {
 }
 
 function setVolume(v) {
-  audio.volume = Math.min(1, Math.max(0, v / 100));
+  // Clampeia entre 0 e 100
+  const pct = Math.min(100, Math.max(0, parseFloat(v)));
+  audio.volume = pct / 100;
+
+  // Sincroniza TODOS os controles de volume em qualquer lugar da UI
+  const ids = ['volSlider', 'eq-master-slider'];
+  document.getElementById('volSlider')?.setAttribute('value', pct);
+  document.getElementById('volSlider') && (document.getElementById('volSlider').value = pct);
+
+  // Slider master do painel EQ
+  document.querySelector('.eq-master-slider') && (document.querySelector('.eq-master-slider').value = pct);
+
+  // Label de porcentagem
   const eqMasterVal = document.getElementById('eqMasterValue');
-  if (eqMasterVal) eqMasterVal.textContent = Math.round(v) + '%';
+  if (eqMasterVal) eqMasterVal.textContent = Math.round(pct) + '%';
+
+  // Fader master do mixer no visualizador fullscreen (se existir)
+  const vizMasterFader = document.getElementById('viz-master-fader');
+  if (vizMasterFader) vizMasterFader.value = pct;
+  const vizMasterVal = document.getElementById('viz-master-val');
+  if (vizMasterVal) vizMasterVal.textContent = Math.round(pct) + '%';
 }
 
 // ── SMART FEATURES ────────────────────────────────────────────────────────────
@@ -741,10 +771,19 @@ function closeSidebar() {
 function offlineCheck() {
   const badge = document.getElementById('offlineBadge');
   let wasOffline = false;
+
+  const applyGhostTheme = (isOffline) => {
+    document.body.classList.toggle('offline-theme', isOffline);
+    if (badge) {
+      badge.style.display = isOffline ? 'flex' : 'none';
+      badge.innerHTML = isOffline ? '👻 OFFLINE — Modo Fantasma' : '';
+    }
+  };
+
   const update = () => {
     const isOffline = !navigator.onLine;
-    if (badge) badge.style.display = isOffline ? 'flex' : 'none';
-    if (isOffline && !wasOffline) showToast('⚡ Modo offline ativado');
+    applyGhostTheme(isOffline);
+    if (isOffline && !wasOffline) showToast('👻 Modo Fantasma ativado — apenas músicas baixadas disponíveis');
     else if (!isOffline && wasOffline) showToast('✓ Conexão restaurada');
     wasOffline = isOffline;
     document.querySelectorAll('.dl-btn').forEach(btn => {
@@ -774,13 +813,11 @@ function setupKeyboardShortcuts() {
       case 'm': case 'M': audio.muted = !audio.muted; showToast(audio.muted ? '🔇 Mudo' : '🔊 Som ativado'); break;
       case 'ArrowUp':
         e.preventDefault();
-        audio.volume = Math.min(1, audio.volume + 0.1);
-        document.getElementById('volSlider').value = audio.volume * 100;
+        setVolume(Math.min(100, audio.volume * 100 + 10));
         break;
       case 'ArrowDown':
         e.preventDefault();
-        audio.volume = Math.max(0, audio.volume - 0.1);
-        document.getElementById('volSlider').value = audio.volume * 100;
+        setVolume(Math.max(0, audio.volume * 100 - 10));
         break;
     }
   });
