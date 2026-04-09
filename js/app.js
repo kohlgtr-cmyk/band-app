@@ -1,181 +1,77 @@
-// ---- STATE ----
-let currentTrack = null;
-let queue = [];
-let queueIndex = 0;
-let playing = false;
-let shuffle = false;
-let repeat = false;
-let currentAlbumId = null;
-let lyricsOpen = false;
-let aboutPanelOpen = false;
+// app.js — EchoDome
+// Versão corrigida: sem duplicatas, sem conflitos de módulo
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentTrack    = null;
+let queue           = [];
+let queueIndex      = 0;
+let playing         = false;
+let shuffle         = false;
+let repeat          = false;
+let currentAlbumId  = null;
+let lyricsOpen      = false;
+let aboutPanelOpen  = false;
 let galleryLightboxOpen = false;
 let progressBarDragging = false;
-let sleepTimer = null;
-let wakeLock = null;
-let visualizerActive = false;
-let userInteracted = false;
+let sleepTimer      = null;
+let wakeLock        = null;
+let userInteracted  = false;
+let eqPanelOpen     = false;
 
-/** Se a faixa já passou deste ponto, "voltar" reinicia do zero; se já estiver no início, vai à faixa anterior. */
 const PREV_AT_START_SEC = 2;
 
-// ---- USER INTERACTION DETECTION ----
+// ── WEB AUDIO ─────────────────────────────────────────────────────────────────
+// Variáveis globais compartilhadas com visualizer.js
+window.audioContext      = null;
+window.analyser          = null;
+window.source            = null;
+window.equalizerFilters  = [];
+
+const EQ_FREQUENCIES = [60, 170, 350, 1000, 3500, 6000, 10000, 16000];
+
+// ── USER INTERACTION ──────────────────────────────────────────────────────────
 function markUserInteraction() {
-  if (!userInteracted) {
-    userInteracted = true;
-    console.log('[App] Interação detectada - AudioContext liberado');
+  if (userInteracted) return;
+  userInteracted = true;
+  if (window.audioContext && window.audioContext.state === 'suspended') {
+    window.audioContext.resume().catch(() => {});
   }
 }
-
-document.addEventListener('click', markUserInteraction, { once: true });
+document.addEventListener('click',      markUserInteraction, { once: true });
 document.addEventListener('touchstart', markUserInteraction, { once: true });
-document.addEventListener('keydown', markUserInteraction, { once: true });
+document.addEventListener('keydown',    markUserInteraction, { once: true });
 
-// ---- LAZY LOADING MODULES ----
-const lazyModules = {
-  visualizer: () => import('./modules/visualizer.js'),
-  share: () => import('./modules/share.js')
-};
-
-async function loadModule(name) {
-  if (!lazyModules[name]) {
-    console.error(`Module ${name} not found`);
-    return null;
-  }
-  try {
-    const module = await lazyModules[name]();
-    console.log(`[Lazy] Loaded: ${name}`);
-    return module;
-  } catch (err) {
-    console.error(`[Lazy] Failed to load ${name}:`, err);
-    return null;
-  }
-}
-
-function preloadModule(name, delay = 5000) {
-  setTimeout(() => {
-    if (!document.hidden) {
-      loadModule(name).catch(() => {});
-    }
-  }, delay);
-}
-
-// ---- OFFLINE / DOWNLOAD STATE ----
-let downloadedSongs = JSON.parse(localStorage.getItem('echodome-downloads') || '[]');
-
-function saveDownloadState() {
-  localStorage.setItem('echodome-downloads', JSON.stringify(downloadedSongs));
-}
-
-function isSongDownloaded(songId) {
-  return downloadedSongs.includes(songId);
-}
-
-// ---- PLAY COUNTS ----
-const PLAY_COUNTS_KEY = 'echodome-play-counts';
-
-function loadPlayCounts() {
-  try {
-    const raw = localStorage.getItem(PLAY_COUNTS_KEY);
-    if (!raw) return {};
-    const o = JSON.parse(raw);
-    if (typeof o !== 'object' || o === null || Array.isArray(o)) return {};
-    const out = {};
-    for (const k of Object.keys(o)) {
-      const v = o[k];
-      const n = typeof v === 'number' ? v : parseInt(String(v), 10);
-      if (!isNaN(n) && n >= 0) out[String(k)] = n;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-let playCounts = loadPlayCounts();
-
-function savePlayCounts() {
-  try {
-    localStorage.setItem(PLAY_COUNTS_KEY, JSON.stringify(playCounts));
-  } catch (e) {
-    console.warn('echodome: não foi possível salvar contagem de plays', e);
-  }
-}
-
-function getPlayCount(songId) {
-  const k = String(songId);
-  const n = playCounts[k];
-  if (typeof n === 'number' && !isNaN(n) && n >= 0) return n;
-  return 0;
-}
-
-function recordPlay(songId) {
-  const k = String(songId);
-  playCounts[k] = getPlayCount(songId) + 1;
-  savePlayCounts();
-
-  const history = JSON.parse(localStorage.getItem('echodome-history') || '[]');
-  history.push({
-    songId,
-    timestamp: Date.now(),
-    duration: audio.duration || 0,
-    completed: false
-  });
-  if (history.length > 1000) history.shift();
-  localStorage.setItem('echodome-history', JSON.stringify(history));
-}
-
-function getHomeSongList() {
-  return songs
-    .slice()
-    .sort((a, b) => {
-      const diff = getPlayCount(b.id) - getPlayCount(a.id);
-      return diff !== 0 ? diff : a.id - b.id;
-    })
-    .slice(0, 8);
-}
-
+// ── AUDIO ELEMENT ─────────────────────────────────────────────────────────────
 const audio = document.getElementById('audio');
 
-// ---- INIT ----
+// ── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   console.log('[Init] Iniciando EchoDome...');
-  
   try {
-    // Renderizações primeiro (crítico)
     renderHomeAlbums();
     renderHomeSongs();
     renderAllAlbumsGrid();
     renderAllSongs();
     renderGallery();
-    
-    console.log('[Init] Renderizações completas');
-    
-    // Eventos (assíncronos, não bloqueantes)
+    initVisualizerBars();
+
     audioEvents();
     offlineCheck();
     setupProgressBar();
     setupKeyboardShortcuts();
     setupTouchGestures();
     setupWakeLock();
-    
-    // SW em background (não bloqueia renderização)
-    setTimeout(() => {
-      registerSW();
-    }, 100);
-    
-    // Preload módulos opcionais (baixa prioridade)
-    setTimeout(() => {
-      preloadModule('share', 3000);
-    }, 2000);
-    
-    // Escape key handler
+
+    setTimeout(registerSW, 100);
+
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (galleryLightboxOpen) closeGalleryLightbox();
       else if (aboutPanelOpen) closeAboutPanel();
-      else if (lyricsOpen) closeLyrics();
+      else if (lyricsOpen)     closeLyrics();
+      else if (eqPanelOpen)    toggleEqPanel();
     });
-    
+
     console.log('[Init] EchoDome pronto');
   } catch (err) {
     console.error('[Init] Erro fatal:', err);
@@ -185,59 +81,35 @@ function init() {
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
-  // Delay mínimo para garantir que o navegador respire
   setTimeout(init, 0);
 }
 
-function syncMenuAria() {
-  const menuBtn = document.getElementById('menuBtn');
-  const sidebar = document.getElementById('sidebar');
-  if (!menuBtn || !sidebar) return;
-  menuBtn.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
-}
-
-// ---- SERVICE WORKER ----
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
 async function registerSW() {
-  if (!('serviceWorker' in navigator)) {
-    console.log('Service Worker not supported');
-    return;
-  }
-
+  if (!('serviceWorker' in navigator)) return;
   try {
-    const registration = await navigator.serviceWorker.register('service-worker.js', {
-      updateViaCache: 'none'
-    });
-
-    console.log('SW registered:', registration.scope);
-
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      newWorker.addEventListener('statechange', () => {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+    const reg = await navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
           showToast('Nova versão disponível. Recarregue para atualizar.');
         }
       });
     });
-
     navigator.serviceWorker.addEventListener('message', e => {
       const { type, songId } = e.data;
-
       if (type === 'DOWNLOAD_DONE') {
-        if (!downloadedSongs.includes(songId)) {
-          downloadedSongs.push(songId);
-          saveDownloadState();
-        }
+        if (!downloadedSongs.includes(songId)) { downloadedSongs.push(songId); saveDownloadState(); }
         updateAllDownloadBtns(songId, 'downloaded');
         refreshRows();
         showToast('Música baixada para offline!');
       }
-
       if (type === 'DOWNLOAD_ERROR') {
         updateAllDownloadBtns(songId, 'error');
         setTimeout(() => updateAllDownloadBtns(songId, 'none'), 3000);
         showToast('Erro ao baixar música');
       }
-
       if (type === 'DELETE_DONE') {
         downloadedSongs = downloadedSongs.filter(id => id !== songId);
         saveDownloadState();
@@ -246,7 +118,6 @@ async function registerSW() {
         showToast('Download removido');
       }
     });
-
   } catch (err) {
     console.warn('SW registration failed:', err);
   }
@@ -254,44 +125,24 @@ async function registerSW() {
 
 function sendSWMessage(data) {
   if (!('serviceWorker' in navigator)) return;
-
-  const send = (sw) => {
-    try {
-      sw.postMessage(data);
-    } catch (e) {
-      console.warn('SW postMessage failed:', e);
-    }
-  };
-
-  if (navigator.serviceWorker.controller) {
-    send(navigator.serviceWorker.controller);
-    return;
-  }
-
-  navigator.serviceWorker.ready.then((reg) => {
-    const sw = reg.active || reg.waiting;
-    if (sw) send(sw);
-  }).catch(err => {
-    console.error('SW ready failed:', err);
-  });
+  const send = (sw) => { try { sw.postMessage(data); } catch(e) {} };
+  if (navigator.serviceWorker.controller) { send(navigator.serviceWorker.controller); return; }
+  navigator.serviceWorker.ready.then(reg => { const sw = reg.active || reg.waiting; if (sw) send(sw); }).catch(() => {});
 }
 
-// ---- DOWNLOAD ----
+// ── OFFLINE / DOWNLOAD ────────────────────────────────────────────────────────
+let downloadedSongs = JSON.parse(localStorage.getItem('echodome-downloads') || '[]');
+function saveDownloadState() { localStorage.setItem('echodome-downloads', JSON.stringify(downloadedSongs)); }
+function isSongDownloaded(songId) { return downloadedSongs.includes(songId); }
+
 async function toggleDownload(songId) {
   const song = songs.find(s => s.id === songId);
   if (!song || !song.file) return;
-
-  const isMarkedDownloaded = isSongDownloaded(songId);
-
-  if (isMarkedDownloaded) {
+  if (isSongDownloaded(songId)) {
     updateAllDownloadBtns(songId, 'deleting');
     sendSWMessage({ type: 'DELETE_SONG', url: song.file, songId });
   } else {
-    if (!navigator.onLine) {
-      showToast('Você está offline. Conecte-se para baixar.');
-      return;
-    }
-
+    if (!navigator.onLine) { showToast('Você está offline. Conecte-se para baixar.'); return; }
     updateAllDownloadBtns(songId, 'downloading');
     sendSWMessage({ type: 'DOWNLOAD_SONG', url: song.file, songId });
   }
@@ -311,21 +162,61 @@ function updateAllDownloadBtns(songId, state) {
 
 function dlIconSVG(state) {
   switch (state) {
-    case 'downloaded':
-      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    case 'downloaded':  return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     case 'downloading':
-    case 'deleting':
-      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="animation:echodl-spin 1s linear infinite;display:block"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>';
-    case 'error':
-      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
-    default:
-      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>';
+    case 'deleting':    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="animation:echodl-spin 1s linear infinite;display:block"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>';
+    case 'error':       return '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>';
+    default:            return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg>';
   }
 }
 
-// ---- RENDER HELPERS ----
+(function injectSpinKeyframe() {
+  if (document.getElementById('echodl-style')) return;
+  const s = document.createElement('style');
+  s.id = 'echodl-style';
+  s.textContent = '@keyframes echodl-spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(s);
+})();
+
+// ── PLAY COUNTS ───────────────────────────────────────────────────────────────
+const PLAY_COUNTS_KEY = 'echodome-play-counts';
+function loadPlayCounts() {
+  try {
+    const raw = localStorage.getItem(PLAY_COUNTS_KEY);
+    if (!raw) return {};
+    const o = JSON.parse(raw);
+    if (typeof o !== 'object' || o === null || Array.isArray(o)) return {};
+    const out = {};
+    for (const k of Object.keys(o)) {
+      const n = typeof o[k] === 'number' ? o[k] : parseInt(String(o[k]), 10);
+      if (!isNaN(n) && n >= 0) out[String(k)] = n;
+    }
+    return out;
+  } catch { return {}; }
+}
+let playCounts = loadPlayCounts();
+function savePlayCounts() { try { localStorage.setItem(PLAY_COUNTS_KEY, JSON.stringify(playCounts)); } catch(e) {} }
+function getPlayCount(songId) { const n = playCounts[String(songId)]; return (typeof n === 'number' && !isNaN(n) && n >= 0) ? n : 0; }
+function recordPlay(songId) {
+  const k = String(songId);
+  playCounts[k] = getPlayCount(songId) + 1;
+  savePlayCounts();
+  const history = JSON.parse(localStorage.getItem('echodome-history') || '[]');
+  history.push({ songId, timestamp: Date.now(), duration: audio.duration || 0, completed: false });
+  if (history.length > 1000) history.shift();
+  localStorage.setItem('echodome-history', JSON.stringify(history));
+}
+
+function getHomeSongList() {
+  return songs.slice().sort((a, b) => {
+    const diff = getPlayCount(b.id) - getPlayCount(a.id);
+    return diff !== 0 ? diff : a.id - b.id;
+  }).slice(0, 8);
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────────────────────────
 function coverHTML(album) {
-  if (album && album.cover) return '<img src="' + album.cover + '" alt="' + (album.name||'') + '" loading="lazy" />';
+  if (album && album.cover) return '<img src="' + album.cover + '" alt="' + (album.name || '') + '" loading="lazy" />';
   return album ? (album.coverEmoji || '🎵') : '🎵';
 }
 
@@ -351,9 +242,9 @@ function aboutIconSVG() {
 function songRowHTML(song, num, opts) {
   opts = opts || {};
   const showPlayCount = !!opts.showPlayCount;
-  const musicsPage = !!opts.musicsPage;
-  const album = albums.find(a => a.id === song.albumId);
-  const isPlaying = currentTrack && currentTrack.id === song.id;
+  const musicsPage    = !!opts.musicsPage;
+  const album      = albums.find(a => a.id === song.albumId);
+  const isPlaying  = currentTrack && currentTrack.id === song.id;
   const isDownloaded = isSongDownloaded(song.id);
 
   const thumb = album && album.cover
@@ -361,15 +252,14 @@ function songRowHTML(song, num, opts) {
     : (album ? album.coverEmoji || '🎵' : '🎵');
 
   const hasLyrics = typeof song.lyrics === 'string' && song.lyrics.trim().length > 0;
-  const hasAbout = typeof song.about === 'string' && song.about.trim().length > 0;
+  const hasAbout  = typeof song.about  === 'string' && song.about.trim().length  > 0;
   const lyrBtn = (hasLyrics || hasAbout)
     ? '<button type="button" class="song-lbtn" onclick="event.stopPropagation();showLyrics(' + song.id + ')" title="Ver letra"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/></svg></button>'
     : '<span style="width:32px;flex-shrink:0;"></span>';
 
   const dlState = isDownloaded ? 'downloaded' : 'none';
-  const dlTitle = isDownloaded ? 'Remover download' : 'Baixar para ouvir offline';
   const dlBtn = song.file
-    ? '<button class="dl-btn" data-dl="' + song.id + '" data-dl-state="' + dlState + '" title="' + dlTitle + '" onclick="event.stopPropagation();toggleDownload(' + song.id + ')">' + dlIconSVG(dlState) + '</button>'
+    ? '<button class="dl-btn" data-dl="' + song.id + '" data-dl-state="' + dlState + '" title="' + (isDownloaded ? 'Remover download' : 'Baixar para ouvir offline') + '" onclick="event.stopPropagation();toggleDownload(' + song.id + ')">' + dlIconSVG(dlState) + '</button>'
     : '<span></span>';
 
   const aboutBtnMusics = musicsPage
@@ -380,10 +270,7 @@ function songRowHTML(song, num, opts) {
   const playsLabel = plays === 1 ? '1 reprodução neste aparelho' : plays + ' reproduções neste aparelho';
   const durClass = showPlayCount ? 'song-dur song-dur--with-plays' : 'song-dur';
   const durInner = showPlayCount
-    ? (
-        '<span class="song-plays" title="Reproduções neste aparelho" aria-label="' + playsLabel + '">' + plays + '×</span>' +
-        '<span class="song-dur-time">' + (song.duration || '—') + '</span>'
-      )
+    ? '<span class="song-plays" title="Reproduções neste aparelho" aria-label="' + playsLabel + '">' + plays + '×</span><span class="song-dur-time">' + (song.duration || '—') + '</span>'
     : (song.duration || '');
 
   const rowExtra = musicsPage ? ' song-row--musics' : '';
@@ -395,78 +282,53 @@ function songRowHTML(song, num, opts) {
         '<div class="song-name">' + song.title + '</div>' +
         '<div class="song-sub">' + (album ? album.name : '') + (isDownloaded ? ' · <span style="color:var(--gold);font-size:10px;letter-spacing:1px;">OFFLINE</span>' : '') + '</div>' +
       '</div>' +
-      lyrBtn +
-      aboutBtnMusics +
-      dlBtn +
+      lyrBtn + aboutBtnMusics + dlBtn +
       '<div class="' + durClass + '">' + durInner + '</div>' +
     '</div>'
   );
 }
 
-(function injectSpinKeyframe() {
-  if (document.getElementById('echodl-style')) return;
-  const s = document.createElement('style');
-  s.id = 'echodl-style';
-  s.textContent = '@keyframes echodl-spin { to { transform: rotate(360deg); } }';
-  document.head.appendChild(s);
-})();
-
-// ---- RENDERS ----
-function renderHomeAlbums() {
-  const el = document.getElementById('homeAlbums');
-  if (!el) return console.warn('homeAlbums não encontrado');
-  el.innerHTML = albums.map(albumCardHTML).join('');
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── RENDERS ───────────────────────────────────────────────────────────────────
+function renderHomeAlbums() {
+  const el = document.getElementById('homeAlbums');
+  if (!el) return;
+  el.innerHTML = albums.map(albumCardHTML).join('');
+}
 function renderHomeSongs() {
   const el = document.getElementById('homeSongs');
   if (!el) return;
-  const list = getHomeSongList();
-  el.innerHTML = list.map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
+  el.innerHTML = getHomeSongList().map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
 }
-
 function renderAllAlbumsGrid() {
   const el = document.getElementById('allAlbums');
   if (!el) return;
   el.innerHTML = albums.map(albumCardHTML).join('');
 }
-
 function renderAllSongs() {
   const el = document.getElementById('allSongsList');
   if (!el) return;
-  el.innerHTML = songs.map((s, i) =>
-    songRowHTML(s, i + 1, { musicsPage: true })
-  ).join('');
+  el.innerHTML = songs.map((s, i) => songRowHTML(s, i + 1, { musicsPage: true })).join('');
 }
 
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-// ---- LAZY LOADING GALLERY ----
+// ── GALLERY ───────────────────────────────────────────────────────────────────
 function renderGallery() {
   const root = document.getElementById('galleryGrid');
   if (!root) return;
+  const list = (typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos)) ? galleryPhotos : [];
+  if (!list.length) { root.innerHTML = '<p class="gallery-empty">Nenhuma foto na galeria.</p>'; return; }
 
-  const list = typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos) ? galleryPhotos : [];
-  if (!list.length) {
-    root.innerHTML = '<p class="gallery-empty">Nenhuma foto na galeria.</p>';
-    return;
-  }
-
-  const imageObserver = new IntersectionObserver((entries, observer) => {
+  const observer = new IntersectionObserver((entries, obs) => {
     entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const img = entry.target;
-        img.src = img.dataset.src;
-        img.classList.add('loaded');
-        observer.unobserve(img);
-      }
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      img.src = img.dataset.src;
+      img.classList.add('loaded');
+      obs.unobserve(img);
     });
   }, { rootMargin: '50px' });
 
@@ -474,25 +336,17 @@ function renderGallery() {
     const src = escapeHtml(item.src);
     const alt = escapeHtml(item.alt || item.caption || 'Foto da galeria');
     const cap = item.caption ? `<span class="gallery-item__caption">${escapeHtml(item.caption)}</span>` : '';
-
-    return `
-      <button type="button" class="gallery-item" onclick="openGalleryLightbox(${i})" aria-label="${alt}">
-        <span class="gallery-item__frame">
-          <img data-src="${src}" alt="${alt}" loading="lazy" decoding="async" class="lazy-img"/>
-        </span>
-        ${cap}
-      </button>
-    `;
+    return `<button type="button" class="gallery-item" onclick="openGalleryLightbox(${i})" aria-label="${alt}"><span class="gallery-item__frame"><img data-src="${src}" alt="${alt}" loading="lazy" decoding="async" class="lazy-img"/></span>${cap}</button>`;
   }).join('');
 
-  root.querySelectorAll('.lazy-img').forEach(img => imageObserver.observe(img));
+  root.querySelectorAll('.lazy-img').forEach(img => observer.observe(img));
 }
 
 function openGalleryLightbox(index) {
-  const list = typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos) ? galleryPhotos : [];
+  const list = (typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos)) ? galleryPhotos : [];
   const item = list[index];
   if (!item) return;
-  const lb = document.getElementById('galleryLightbox');
+  const lb  = document.getElementById('galleryLightbox');
   const img = document.getElementById('galleryLightboxImg');
   const cap = document.getElementById('galleryLightboxCaption');
   img.src = item.src;
@@ -512,21 +366,28 @@ function closeGalleryLightbox() {
   lb.setAttribute('aria-hidden', 'true');
   galleryLightboxOpen = false;
   document.body.style.overflow = '';
-  const img = document.getElementById('galleryLightboxImg');
-  img.removeAttribute('src');
+  document.getElementById('galleryLightboxImg').removeAttribute('src');
 }
 
-// ---- NAVIGATION ----
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
 function showView(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-' + name).classList.add('active');
+  const view = document.getElementById('view-' + name);
+  if (view) view.classList.add('active');
   if (btn) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
-  if (name === 'home') renderHomeSongs();
+  if (name === 'home')    renderHomeSongs();
   if (name === 'gallery') renderGallery();
   closeSidebar();
+}
+
+function syncMenuAria() {
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  if (!menuBtn || !sidebar) return;
+  menuBtn.setAttribute('aria-expanded', sidebar.classList.contains('open') ? 'true' : 'false');
 }
 
 function openAlbum(albumId) {
@@ -541,7 +402,7 @@ function openAlbum(albumId) {
   showView('album-detail', null);
 }
 
-// ---- PLAYBACK ----
+// ── PLAYBACK ──────────────────────────────────────────────────────────────────
 async function playSong(songId, q) {
   const song = songs.find(s => s.id === songId);
   if (!song) return;
@@ -551,29 +412,27 @@ async function playSong(songId, q) {
   queue = q || songs;
   queueIndex = queue.findIndex(s => s.id === songId);
 
-  const absoluteUrl = new URL(song.file, window.location.origin).href;
-  audio.src = absoluteUrl;
+  audio.src = new URL(song.file, window.location.origin).href;
   audio.volume = document.getElementById('volSlider').value / 100;
 
   try {
     await audio.play();
     playing = true;
-
     requestWakeLock();
     preloadNextSong();
-    
-    // REMOVIDO: initVisualizer() daqui - agora só via toggleVisualizer
-    
   } catch (err) {
     console.error('Playback failed:', err);
     playing = false;
-    if (!navigator.onLine && !isSongDownloaded(songId)) {
-      showToast('Música não disponível offline');
-    }
+    if (!navigator.onLine && !isSongDownloaded(songId)) showToast('Música não disponível offline');
   }
 
   updatePlayerUI();
   refreshRows();
+
+  // Atualiza info no visualizador se estiver aberto
+  if (window.Visualizer && window.Visualizer.isFullscreen) {
+    window.Visualizer._updateTrackInfo();
+  }
 }
 
 function playAlbum(albumId) {
@@ -588,25 +447,17 @@ function playAll() {
 
 function togglePlay() {
   if (!currentTrack) return;
-  playing ? audio.pause() : audio.play();
-  playing = !playing;
-  updatePlayIcon();
-
-  if (playing) {
-    requestWakeLock();
-  } else {
-    releaseWakeLock();
+  if (playing) { audio.pause(); }
+  else {
+    markUserInteraction();
+    audio.play().catch(e => console.warn('play failed', e));
   }
 }
 
 function prevTrack() {
   if (!queue.length || !currentTrack) return;
   const t = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
-  if (t > PREV_AT_START_SEC) {
-    audio.currentTime = 0;
-    syncProgressUI(0);
-    return;
-  }
+  if (t > PREV_AT_START_SEC) { audio.currentTime = 0; syncProgressUI(0); return; }
   queueIndex = (queueIndex - 1 + queue.length) % queue.length;
   playSong(queue[queueIndex].id, queue);
 }
@@ -622,243 +473,62 @@ function nextTrack() {
 function toggleShuffle() {
   shuffle = !shuffle;
   const btn = document.getElementById('shuffleBtn');
-  btn.classList.toggle('active', shuffle);
-  btn.setAttribute('aria-pressed', shuffle ? 'true' : 'false');
+  if (btn) { btn.classList.toggle('active', shuffle); btn.setAttribute('aria-pressed', String(shuffle)); }
 }
 
 function toggleRepeat() {
   repeat = !repeat;
   const btn = document.getElementById('repeatBtn');
-  btn.classList.toggle('active', repeat);
-  btn.setAttribute('aria-pressed', repeat ? 'true' : 'false');
+  if (btn) { btn.classList.toggle('active', repeat); btn.setAttribute('aria-pressed', String(repeat)); }
 }
 
-// ---- SMART FEATURES ----
-function preloadNextSong() {
-  if (!queue.length || queueIndex >= queue.length - 1) return;
-
-  const nextSong = queue[queueIndex + 1];
-  if (isSongDownloaded(nextSong.id)) return;
-
-  fetch(nextSong.file, { mode: 'no-cors' })
-    .then(r => r.blob())
-    .then(blob => {
-      if (blob.size > 0) {
-        caches.open('echodome-music-v50').then(cache => {
-          cache.put(nextSong.file, new Response(blob));
-        });
-      }
-    })
-    .catch(() => {});
-}
-
-function toggleSleepTimer() {
-  if (sleepTimer) {
-    clearTimeout(sleepTimer);
-    sleepTimer = null;
-    showToast('Timer cancelado');
-    document.getElementById('sleepBtn').classList.remove('active');
-  } else {
-    const minutes = 30;
-    sleepTimer = setTimeout(() => {
-      audio.pause();
-      playing = false;
-      updatePlayIcon();
-      showToast('Timer encerrado - música pausada');
-      sleepTimer = null;
-    }, minutes * 60 * 1000);
-
-    showToast(`Timer de ${minutes}min ativado`);
-    document.getElementById('sleepBtn').classList.add('active');
-  }
-}
-
-async function setupWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-
-  audio.addEventListener('play', requestWakeLock);
-  audio.addEventListener('pause', releaseWakeLock);
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && playing) {
-      requestWakeLock();
-    }
-  });
-}
-
-async function requestWakeLock() {
-  if (!('wakeLock' in navigator) || wakeLock) return;
-
-  try {
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => {
-      wakeLock = null;
-    });
-  } catch (err) {
-    console.log('Wake lock failed:', err);
-  }
-}
-
-function releaseWakeLock() {
-  if (wakeLock) {
-    wakeLock.release();
-    wakeLock = null;
-  }
-}
-
-// ---- VISUALIZER (VERSÃO SIMPLES) ----
-function toggleVisualizer() {
-  // Clique no botão já é interação do usuário — marca diretamente
-  markUserInteraction();
-
-  if (!window.Visualizer) {
-    console.warn('[App] Visualizer não disponível');
-    return;
-  }
-
-  const isFullscreen = window.Visualizer.toggleFullscreen();
-  visualizerActive = isFullscreen;
-
-  const btn = document.getElementById('vizBtn');
-  btn.classList.toggle('active', isFullscreen);
-}
-
-// ---- PROGRESS BAR ----
-function syncProgressUI(t) {
-  if (!audio.duration) return;
-  const pct = (t / audio.duration) * 100;
-  document.getElementById('pFill').style.width = pct + '%';
-  document.getElementById('pThumb').style.left = pct + '%';
-  document.getElementById('pCurrent').textContent = fmt(t);
-}
-
-function seekFromClientX(clientX) {
-  if (!currentTrack || !audio.duration) return;
-  const bar = document.getElementById('pBar');
-  const rect = bar.getBoundingClientRect();
-  const w = rect.width;
-  if (w <= 0) return;
-  const pct = (clientX - rect.left) / w;
-  audio.currentTime = Math.max(0, Math.min(1, pct)) * audio.duration;
-  syncProgressUI(audio.currentTime);
-}
-
-function setupProgressBar() {
-  const bar = document.getElementById('pBar');
-  let onMove = null;
-  let onUp = null;
-
-  bar.addEventListener('pointerdown', (e) => {
-    if (!currentTrack) return;
-    if (!audio.duration) return;
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    e.preventDefault();
-    seekFromClientX(e.clientX);
-    progressBarDragging = true;
-    bar.classList.add('is-scrubbing');
-
-    onMove = (ev) => {
-      if (!progressBarDragging) return;
-      ev.preventDefault();
-      seekFromClientX(ev.clientX);
-    };
-
-    onUp = () => {
-      progressBarDragging = false;
-      bar.classList.remove('is-scrubbing');
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
-      document.removeEventListener('pointercancel', onUp);
-      onMove = null;
-      onUp = null;
-    };
-
-    document.addEventListener('pointermove', onMove, { passive: false });
-    document.addEventListener('pointerup', onUp);
-    document.addEventListener('pointercancel', onUp);
-  });
-}
-
-function setVolume(v) { audio.volume = v / 100; }
-
-// ---- AUDIO EVENTS ----
-function audioEvents() {
-  audio.addEventListener('timeupdate', () => {
-    if (!audio.duration || progressBarDragging) return;
-    syncProgressUI(audio.currentTime);
-  });
-
-  audio.addEventListener('loadedmetadata', () => {
-    document.getElementById('pTotal').textContent = fmt(audio.duration);
-  });
-
-  audio.addEventListener('ended', () => {
-    if (repeat) {
-      audio.play();
-    } else {
-      nextTrack();
-    }
-  });
-
-  audio.addEventListener('play', () => {
-    playing = true;
-    updatePlayIcon();
-    requestWakeLock();
-    
-    // Só tenta visualizador se já houver interação e estiver ativo
-    if (userInteracted && visualizerActive) {
-      requestAnimationFrame(() => {
-        initVisualizer();
-      });
-    }
-  });
-
-  audio.addEventListener('pause', () => {
-    playing = false;
-    updatePlayIcon();
-    releaseWakeLock();
-  });
-}
-
-// ---- UI ----
+// ── UI ────────────────────────────────────────────────────────────────────────
 function updatePlayerUI() {
+  if (!currentTrack) return;
   const album = albums.find(a => a.id === currentTrack.albumId);
-  document.getElementById('pTitle').textContent = currentTrack.title;
+  document.getElementById('pTitle').textContent  = currentTrack.title;
   document.getElementById('pArtist').textContent = album ? album.name : BAND_NAME;
-
   const coverEl = document.getElementById('pCover');
   if (album && album.cover) coverEl.innerHTML = '<img src="' + album.cover + '" alt="" />';
   else coverEl.innerHTML = '<span>' + (album ? album.coverEmoji || '🎵' : '🎵') + '</span>';
-
   updatePlayIcon();
   updateMediaSession();
 }
 
 function updatePlayIcon() {
-  document.getElementById('playIcon').innerHTML = playing
+  const playIcon = document.getElementById('playIcon');
+  const playBtn  = document.getElementById('playBtn');
+  const floatIcon = document.getElementById('floatingPlayIcon');
+
+  if (playIcon) playIcon.innerHTML = playing
     ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
     : '<path d="M8 5v14l11-7z"/>';
-  document.getElementById('playBtn').setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
+  if (playBtn) playBtn.setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
+  if (floatIcon) floatIcon.innerHTML = playing
+    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
+
+  // Sincroniza ícone no visualizador fullscreen
+  const vizIcon = document.getElementById('viz-play-icon');
+  if (vizIcon) vizIcon.innerHTML = playing
+    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
 }
 
 function updateMediaSession() {
-  if (!('mediaSession' in navigator)) return;
-
+  if (!('mediaSession' in navigator) || !currentTrack) return;
   const album = albums.find(a => a.id === currentTrack.albumId);
-
   navigator.mediaSession.metadata = new MediaMetadata({
-    title: currentTrack.title,
-    artist: BAND_NAME,
-    album: album ? album.name : '',
+    title:   currentTrack.title,
+    artist:  BAND_NAME,
+    album:   album ? album.name : '',
     artwork: album && album.cover ? [{ src: album.cover, sizes: '512x512', type: 'image/jpeg' }] : []
   });
-
-  navigator.mediaSession.setActionHandler('play', () => audio.play());
-  navigator.mediaSession.setActionHandler('pause', () => audio.pause());
+  navigator.mediaSession.setActionHandler('play',          () => audio.play());
+  navigator.mediaSession.setActionHandler('pause',         () => audio.pause());
   navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
-  navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
-  navigator.mediaSession.setActionHandler('seekto', (d) => {
-    if (d.seekTime) audio.currentTime = d.seekTime;
-  });
+  navigator.mediaSession.setActionHandler('nexttrack',     nextTrack);
+  navigator.mediaSession.setActionHandler('seekto',        (d) => { if (d.seekTime) audio.currentTime = d.seekTime; });
 }
 
 function refreshRows() {
@@ -872,10 +542,134 @@ function refreshRows() {
   }
 }
 
-// ---- LYRICS ----
-function toggleLyrics() {
-  lyricsOpen ? closeLyrics() : (currentTrack ? showLyrics(currentTrack.id) : null);
+// ── AUDIO EVENTS ──────────────────────────────────────────────────────────────
+function audioEvents() {
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration || progressBarDragging) return;
+    syncProgressUI(audio.currentTime);
+  });
+  audio.addEventListener('loadedmetadata', () => {
+    document.getElementById('pTotal').textContent = fmt(audio.duration);
+  });
+  audio.addEventListener('ended', () => {
+    if (repeat) audio.play();
+    else nextTrack();
+  });
+  audio.addEventListener('play', () => {
+    playing = true;
+    updatePlayIcon();
+    requestWakeLock();
+    // Inicializa AudioContext após interação
+    if (userInteracted && !window.audioContext) initAudioContext();
+    else if (window.audioContext && window.audioContext.state === 'suspended') window.audioContext.resume();
+    startVisualizerBars();
+  });
+  audio.addEventListener('pause', () => {
+    playing = false;
+    updatePlayIcon();
+    releaseWakeLock();
+    stopVisualizerBars();
+  });
 }
+
+// ── PROGRESS BAR ──────────────────────────────────────────────────────────────
+function syncProgressUI(t) {
+  if (!audio.duration) return;
+  const pct = (t / audio.duration) * 100;
+  const fill  = document.getElementById('pFill');
+  const thumb = document.getElementById('pThumb');
+  const cur   = document.getElementById('pCurrent');
+  if (fill)  fill.style.width  = pct + '%';
+  if (thumb) thumb.style.left  = pct + '%';
+  if (cur)   cur.textContent   = fmt(t);
+}
+
+function seekFromClientX(clientX) {
+  if (!currentTrack || !audio.duration) return;
+  const bar  = document.getElementById('pBar');
+  const rect = bar.getBoundingClientRect();
+  if (rect.width <= 0) return;
+  const pct = (clientX - rect.left) / rect.width;
+  audio.currentTime = Math.max(0, Math.min(1, pct)) * audio.duration;
+  syncProgressUI(audio.currentTime);
+}
+
+function setupProgressBar() {
+  const bar = document.getElementById('pBar');
+  if (!bar) return;
+  bar.addEventListener('pointerdown', (e) => {
+    if (!currentTrack || !audio.duration) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    seekFromClientX(e.clientX);
+    progressBarDragging = true;
+    bar.classList.add('is-scrubbing');
+    const onMove = (ev) => { if (progressBarDragging) { ev.preventDefault(); seekFromClientX(ev.clientX); } };
+    const onUp   = () => {
+      progressBarDragging = false;
+      bar.classList.remove('is-scrubbing');
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup',   onUp);
+      document.removeEventListener('pointercancel', onUp);
+    };
+    document.addEventListener('pointermove',   onMove, { passive: false });
+    document.addEventListener('pointerup',     onUp);
+    document.addEventListener('pointercancel', onUp);
+  });
+}
+
+function setVolume(v) {
+  audio.volume = Math.min(1, Math.max(0, v / 100));
+  const eqMasterVal = document.getElementById('eqMasterValue');
+  if (eqMasterVal) eqMasterVal.textContent = Math.round(v) + '%';
+}
+
+// ── SMART FEATURES ────────────────────────────────────────────────────────────
+function preloadNextSong() {
+  if (!queue.length || queueIndex >= queue.length - 1) return;
+  const nextSong = queue[queueIndex + 1];
+  if (isSongDownloaded(nextSong.id)) return;
+  fetch(nextSong.file, { mode: 'no-cors' })
+    .then(r => r.blob())
+    .then(blob => {
+      if (blob.size > 0) caches.open('echodome-music-v50').then(cache => cache.put(nextSong.file, new Response(blob)));
+    }).catch(() => {});
+}
+
+function toggleSleepTimer() {
+  const btn = document.getElementById('sleepBtn');
+  if (sleepTimer) {
+    clearTimeout(sleepTimer); sleepTimer = null;
+    showToast('Timer cancelado');
+    if (btn) btn.classList.remove('active');
+  } else {
+    const minutes = 30;
+    sleepTimer = setTimeout(() => {
+      audio.pause(); playing = false; updatePlayIcon();
+      showToast('Timer encerrado - música pausada');
+      sleepTimer = null;
+    }, minutes * 60 * 1000);
+    showToast(`Timer de ${minutes}min ativado`);
+    if (btn) btn.classList.add('active');
+  }
+}
+
+async function setupWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  audio.addEventListener('play',  requestWakeLock);
+  audio.addEventListener('pause', releaseWakeLock);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && playing) requestWakeLock();
+  });
+}
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator) || wakeLock) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch(e) {}
+}
+function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
+
+// ── LYRICS / ABOUT ────────────────────────────────────────────────────────────
+function toggleLyrics() { lyricsOpen ? closeLyrics() : (currentTrack ? showLyrics(currentTrack.id) : null); }
 
 function showLyrics(songId) {
   const song = songs.find(s => s.id === songId);
@@ -887,10 +681,17 @@ function showLyrics(songId) {
   body.textContent = hasLyrics ? song.lyrics : 'Letra não disponível.';
   body.classList.toggle('is-empty', !hasLyrics);
   const panel = document.getElementById('lyricsPanel');
-  panel.classList.add('open');
-  panel.setAttribute('aria-hidden', 'false');
+  panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   document.getElementById('lyricsBtn').classList.add('active');
   lyricsOpen = true;
+}
+
+function closeLyrics() {
+  const panel = document.getElementById('lyricsPanel');
+  if (!panel) return;
+  panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
+  document.getElementById('lyricsBtn').classList.remove('active');
+  lyricsOpen = false;
 }
 
 function showSongAbout(songId) {
@@ -903,124 +704,74 @@ function showSongAbout(songId) {
   body.textContent = hasAbout ? song.about : 'Nenhuma informação cadastrada para esta faixa.';
   body.classList.toggle('is-empty', !hasAbout);
   const panel = document.getElementById('aboutPanel');
-  panel.classList.add('open');
-  panel.setAttribute('aria-hidden', 'false');
+  panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
   aboutPanelOpen = true;
 }
 
 function closeAboutPanel() {
   const panel = document.getElementById('aboutPanel');
   if (!panel) return;
-  panel.classList.remove('open');
-  panel.setAttribute('aria-hidden', 'true');
+  panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
   aboutPanelOpen = false;
 }
 
-function closeLyrics() {
-  const panel = document.getElementById('lyricsPanel');
-  panel.classList.remove('open');
-  panel.setAttribute('aria-hidden', 'true');
-  document.getElementById('lyricsBtn').classList.remove('active');
-  lyricsOpen = false;
-}
-
-// ---- SEARCH ----
+// ── SEARCH ────────────────────────────────────────────────────────────────────
 function handleSearch(q) {
   if (!q.trim()) { showView('home', null); return; }
   const r = songs.filter(s => s.title.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('searchResults').innerHTML =
-    r.length ? r.map((s, i) => songRowHTML(s, i + 1)).join('')
-             : '<p style="color:var(--t2);padding:20px">Nenhum resultado.</p>';
+  document.getElementById('searchResults').innerHTML = r.length
+    ? r.map((s, i) => songRowHTML(s, i + 1)).join('')
+    : '<p style="color:var(--t2);padding:20px">Nenhum resultado.</p>';
   showView('search', null);
 }
 
-// ---- SIDEBAR ----
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('overlay').classList.toggle('show');
   syncMenuAria();
 }
-
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('show');
   syncMenuAria();
 }
 
-// ---- OFFLINE ----
+// ── OFFLINE ───────────────────────────────────────────────────────────────────
 function offlineCheck() {
   const badge = document.getElementById('offlineBadge');
   let wasOffline = false;
-
   const update = () => {
     const isOffline = !navigator.onLine;
     if (badge) badge.style.display = isOffline ? 'flex' : 'none';
-
-    if (isOffline && !wasOffline) {
-      showToast('⚡ Modo offline ativado');
-    } else if (!isOffline && wasOffline) {
-      showToast('✓ Conexão restaurada');
-    }
+    if (isOffline && !wasOffline) showToast('⚡ Modo offline ativado');
+    else if (!isOffline && wasOffline) showToast('✓ Conexão restaurada');
     wasOffline = isOffline;
-
     document.querySelectorAll('.dl-btn').forEach(btn => {
       const songId = parseInt(btn.dataset.dl);
-      const isDownloaded = isSongDownloaded(songId);
-
-      if (isOffline && !isDownloaded) {
-        btn.disabled = true;
-        btn.style.opacity = '0.3';
-        btn.title = 'Indisponível offline';
-      } else {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        const state = isDownloaded ? 'downloaded' : 'none';
-        btn.title = state === 'downloaded' ? 'Remover download' : 'Baixar para ouvir offline';
-      }
+      const isDl = isSongDownloaded(songId);
+      btn.disabled = isOffline && !isDl;
+      btn.style.opacity = (isOffline && !isDl) ? '0.3' : '1';
+      btn.title = isOffline && !isDl ? 'Indisponível offline' : (isDl ? 'Remover download' : 'Baixar para ouvir offline');
     });
   };
-
   update();
-  window.addEventListener('online', update);
+  window.addEventListener('online',  update);
   window.addEventListener('offline', update);
 }
 
-// ---- KEYBOARD SHORTCUTS ----
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     switch(e.key) {
-      case ' ':
-        e.preventDefault();
-        togglePlay();
-        break;
-      case 'ArrowRight':
-        if (e.ctrlKey) nextTrack();
-        break;
-      case 'ArrowLeft':
-        if (e.ctrlKey) prevTrack();
-        break;
-      case 'l':
-      case 'L':
-        toggleLyrics();
-        break;
-      case 's':
-      case 'S':
-        if (e.ctrlKey) {
-          e.preventDefault();
-          toggleShuffle();
-        }
-        break;
-      case 'r':
-      case 'R':
-        toggleRepeat();
-        break;
-      case 'm':
-      case 'M':
-        audio.muted = !audio.muted;
-        showToast(audio.muted ? '🔇 Mudo' : '🔊 Som ativado');
-        break;
+      case ' ':          e.preventDefault(); togglePlay();    break;
+      case 'ArrowRight': if (e.ctrlKey) nextTrack();          break;
+      case 'ArrowLeft':  if (e.ctrlKey) prevTrack();          break;
+      case 'l': case 'L': toggleLyrics();                     break;
+      case 's': case 'S': if (e.ctrlKey) { e.preventDefault(); toggleShuffle(); } break;
+      case 'r': case 'R': toggleRepeat();                     break;
+      case 'm': case 'M': audio.muted = !audio.muted; showToast(audio.muted ? '🔇 Mudo' : '🔊 Som ativado'); break;
       case 'ArrowUp':
         e.preventDefault();
         audio.volume = Math.min(1, audio.volume + 0.1);
@@ -1035,533 +786,266 @@ function setupKeyboardShortcuts() {
   });
 }
 
-// ---- TOUCH GESTURES ----
+// ── TOUCH GESTURES ────────────────────────────────────────────────────────────
 function setupTouchGestures() {
-  let touchStartX = 0;
-  let touchStartY = 0;
-
+  let startX = 0, startY = 0, startTime = 0;
   document.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
+    startX = e.changedTouches[0].screenX;
+    startY = e.changedTouches[0].screenY;
+    startTime = Date.now();
   }, { passive: true });
-
   document.addEventListener('touchend', e => {
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-
-    if (Math.abs(deltaX) > 100 && Math.abs(deltaY) < 50) {
-      if (deltaX > 0) prevTrack();
-      else nextTrack();
+    const dx = e.changedTouches[0].screenX - startX;
+    const dy = e.changedTouches[0].screenY - startY;
+    const dt = Date.now() - startTime;
+    if (Math.abs(dx) > 80 && Math.abs(dy) < 100 && dt < 300 && !progressBarDragging) {
+      if (dx > 0) { prevTrack(); showToast('⏮ Faixa anterior'); }
+      else        { nextTrack(); showToast('⏭ Próxima faixa');  }
     }
   }, { passive: true });
 }
 
-// ---- TOAST NOTIFICATIONS ----
+// ── TOAST ─────────────────────────────────────────────────────────────────────
 function showToast(message) {
   const toast = document.getElementById('toast');
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add('show');
-
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 3000);
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ---- DATA EXPORT/IMPORT ----
+// ── DATA EXPORT ───────────────────────────────────────────────────────────────
 function exportUserData() {
-  const data = {
-    playCounts,
-    downloadedSongs,
-    history: localStorage.getItem('echodome-history'),
-    trends: localStorage.getItem('echodome-trends'),
-    timestamp: Date.now()
-  };
-
+  const data = { playCounts, downloadedSongs, history: localStorage.getItem('echodome-history'), timestamp: Date.now() };
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
   a.download = `echodome-backup-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
-
   showToast('Backup exportado!');
 }
 
 async function shareSong() {
-  if (!currentTrack) {
-    showToast('Nenhuma música tocando');
-    return;
-  }
-
-  const shareModule = await loadModule('share');
-  if (shareModule && shareModule.shareSong) {
-    shareModule.shareSong(currentTrack, BAND_NAME);
-  }
+  if (!currentTrack) { showToast('Nenhuma música tocando'); return; }
+  const shareData = {
+    title: `${currentTrack.title} - ${BAND_NAME}`,
+    text:  `Ouça "${currentTrack.title}" no EchoDome`,
+    url:   window.location.href
+  };
+  if (navigator.share) {
+    try { await navigator.share(shareData); }
+    catch(e) { if (e.name !== 'AbortError') _fallbackShare(shareData); }
+  } else { _fallbackShare(shareData); }
+}
+function _fallbackShare(shareData) {
+  const text = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast('Link copiado!')).catch(() => {});
 }
 
-// ---- UTILS ----
+// ── UTILS ─────────────────────────────────────────────────────────────────────
 function fmt(s) {
-  if (isNaN(s)) return '0:00';
+  if (!s || isNaN(s)) return '0:00';
   return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 }
 
-// ---- EQUALIZADOR GRÁFICO FUNCIONAL ----
-let audioContext = null;
-let analyser = null;
-let source = null;
-let equalizerFilters = [];
-let equalizerEnabled = false;
-let eqPanelOpen = false;
-
-// Frequências das 8 bandas
-const EQ_FREQUENCIES = [60, 170, 350, 1000, 3500, 6000, 10000, 16000];
-
+// ── AUDIO CONTEXT / EQUALIZER ─────────────────────────────────────────────────
 function initAudioContext() {
-  const audio = document.getElementById('audio');
-  if (!audio) return null;
-  
+  if (window.audioContext) return window.audioContext;
   try {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    
-    // Criar filtros apenas uma vez
-    if (equalizerFilters.length === 0) {
-      EQ_FREQUENCIES.forEach((freq, index) => {
-        const filter = audioContext.createBiquadFilter();
-        filter.type = 'peaking';
-        filter.frequency.value = freq;
-        filter.Q.value = 1.4;
-        filter.gain.value = 0;
-        equalizerFilters.push(filter);
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    window.audioContext = new AC();
+
+    // Cria os 8 filtros de EQ em cadeia
+    if (window.equalizerFilters.length === 0) {
+      EQ_FREQUENCIES.forEach(freq => {
+        const f = window.audioContext.createBiquadFilter();
+        f.type = 'peaking'; f.frequency.value = freq; f.Q.value = 1.4; f.gain.value = 0;
+        window.equalizerFilters.push(f);
       });
     }
-    
-    // Conectar source aos filtros em cadeia
-    if (!source) {
-      source = audioContext.createMediaElementSource(audio);
-      
-      // Cadeia: source -> filter0 -> filter1 -> ... -> filter7 -> destination
-      let previousNode = source;
-      equalizerFilters.forEach(filter => {
-        previousNode.connect(filter);
-        previousNode = filter;
-      });
-      previousNode.connect(audioContext.destination);
+
+    // Connecta: source -> EQ filters -> analyser -> destination
+    if (!window.source) {
+      window.source = window.audioContext.createMediaElementSource(audio);
+      let prev = window.source;
+      window.equalizerFilters.forEach(f => { prev.connect(f); prev = f; });
+
+      window.analyser = window.audioContext.createAnalyser();
+      window.analyser.fftSize = 256;
+      window.analyser.smoothingTimeConstant = 0.85;
+
+      prev.connect(window.analyser);
+      window.analyser.connect(window.audioContext.destination);
     }
-    
-    // Também criar analyser para o visualizador
-    if (!analyser) {
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.85;
-      // Conectar o último filtro ao analyser também
-      equalizerFilters[equalizerFilters.length - 1].connect(analyser);
-    }
-    
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-    
-    return audioContext;
-  } catch (err) {
-    console.error('[EQ] Erro ao inicializar AudioContext:', err);
+
+    console.log('[AudioContext] Inicializado');
+    return window.audioContext;
+  } catch(err) {
+    console.error('[AudioContext] Erro:', err);
     return null;
   }
 }
 
+// ── EQUALIZER GRÁFICO ─────────────────────────────────────────────────────────
 function updateEqBand(bandIndex, value) {
   const gain = parseFloat(value);
-  
-  // Inicializar contexto se necessário
-  if (!audioContext) initAudioContext();
-  
-  // Atualizar filtro
-  if (equalizerFilters[bandIndex]) {
-    equalizerFilters[bandIndex].gain.setValueAtTime(gain, audioContext.currentTime);
+  if (!window.audioContext) initAudioContext();
+  if (window.equalizerFilters[bandIndex]) {
+    window.equalizerFilters[bandIndex].gain.setValueAtTime(gain, window.audioContext.currentTime);
   }
-  
-  // Atualizar UI
+  // Atualiza UI do painel principal
   const band = document.querySelectorAll('.eq-band')[bandIndex];
   if (band) {
-    const valueDisplay = band.querySelector('.eq-value');
-    const slider = band.querySelector('.eq-slider');
-    if (valueDisplay) valueDisplay.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
-    if (slider) slider.value = gain;
+    const sl = band.querySelector('.eq-slider');
+    const vl = band.querySelector('.eq-value');
+    if (sl) sl.value = gain;
+    if (vl) vl.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
   }
-  
-  equalizerEnabled = true;
-  updateEqButtonState();
+  // Atualiza UI do painel no fullscreen
+  const vizVal = document.getElementById(`viz-eq-val-${bandIndex}`);
+  if (vizVal) vizVal.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
+  const vizSliders = document.querySelectorAll('#viz-eq-panel .viz-eq-slider');
+  if (vizSliders[bandIndex]) vizSliders[bandIndex].value = gain;
+
+  _updateEqButtonState();
 }
 
 function resetEqualizer() {
-  EQ_FREQUENCIES.forEach((_, index) => {
-    updateEqBand(index, 0);
-  });
-  document.getElementById('eqPreset').value = 'flat';
-  showToast('Equalizador resetado');
+  EQ_FREQUENCIES.forEach((_, i) => updateEqBand(i, 0));
+  const preset = document.getElementById('eqPreset');
+  if (preset) preset.value = 'flat';
+  showToast('↺ Equalizador resetado');
 }
 
 function applyEqPreset(preset) {
   const presets = {
-    flat: [0, 0, 0, 0, 0, 0, 0, 0],
-    rock: [4, 2, -2, -4, 2, 4, 5, 4],
-    pop: [-2, -1, 0, 2, 4, 3, 1, 0],
-    jazz: [0, 0, 2, 4, 2, 0, 2, 4],
-    bass: [6, 5, 4, 0, -2, -3, -2, 0],
-    vocal: [-2, -2, 0, 3, 5, 3, 1, 0]
+    flat:  [0,  0,  0,  0,  0,  0,  0,  0],
+    rock:  [4,  2, -2, -4,  2,  4,  5,  4],
+    pop:   [-2,-1,  0,  2,  4,  3,  1,  0],
+    jazz:  [0,  0,  2,  4,  2,  0,  2,  4],
+    bass:  [6,  5,  4,  0, -2, -3, -2,  0],
+    vocal: [-2,-2,  0,  3,  5,  3,  1,  0],
   };
-  
-  const values = presets[preset] || presets.flat;
-  values.forEach((val, index) => {
-    setTimeout(() => updateEqBand(index, val), index * 50); // Animação sequencial
-  });
-  
-  showToast(`Preset: ${preset.charAt(0).toUpperCase() + preset.slice(1)}`);
+  const vals = presets[preset] || presets.flat;
+  vals.forEach((v, i) => setTimeout(() => updateEqBand(i, v), i * 40));
+  showToast('Preset: ' + preset.charAt(0).toUpperCase() + preset.slice(1));
 }
 
 function toggleEqPanel() {
   const panel = document.getElementById('eqPanel');
-  const btn = document.getElementById('eqBtn');
-  
+  const btn   = document.getElementById('eqBtn');
   if (!panel) return;
-  
   eqPanelOpen = !eqPanelOpen;
-  
   if (eqPanelOpen) {
-    // Inicializar áudio se necessário (requer interação do usuário)
-    if (!audioContext && userInteracted) {
-      initAudioContext();
-    }
-    panel.classList.add('open');
-    panel.setAttribute('aria-hidden', 'false');
+    if (!window.audioContext && userInteracted) initAudioContext();
+    panel.classList.add('open'); panel.setAttribute('aria-hidden', 'false');
     if (btn) btn.classList.add('active');
   } else {
-    panel.classList.remove('open');
-    panel.setAttribute('aria-hidden', 'true');
-    if (btn && !equalizerEnabled) btn.classList.remove('active');
+    panel.classList.remove('open'); panel.setAttribute('aria-hidden', 'true');
+    if (btn && !_hasEqChanges()) btn.classList.remove('active');
   }
 }
 
-function updateEqButtonState() {
+function _hasEqChanges() { return window.equalizerFilters.some(f => f.gain.value !== 0); }
+function _updateEqButtonState() {
   const btn = document.getElementById('eqBtn');
-  const hasChanges = equalizerFilters.some(f => f.gain.value !== 0);
-  
-  if (hasChanges) {
-    equalizerEnabled = true;
-    if (btn) btn.classList.add('active');
-  } else {
-    equalizerEnabled = false;
-    if (btn && !eqPanelOpen) btn.classList.remove('active');
-  }
+  if (!btn) return;
+  if (_hasEqChanges()) btn.classList.add('active');
+  else if (!eqPanelOpen) btn.classList.remove('active');
 }
 
-// Fechar painel com ESC
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && eqPanelOpen) {
-    toggleEqPanel();
-  }
-});
-
-// ---- VISUALIZADOR DE ESPECTRO (o que já existia) ----
-let eqBars = [];
-let eqAnimationId = null;
-let spectrumActive = false;
+// ── VISUALIZADOR DE ESPECTRO (barrinhas no player) ────────────────────────────
+let _eqBars = [];
+let _eqAnimId = null;
+let _vizBarsActive = false;
 
 function initVisualizerBars() {
-  const eqContainer = document.getElementById('equalizer');
-  if (!eqContainer) return;
-  
-  eqContainer.innerHTML = '';
-  eqBars = [];
+  const container = document.getElementById('equalizer');
+  if (!container) return;
+  container.innerHTML = '';
+  _eqBars = [];
   for (let i = 0; i < 20; i++) {
     const bar = document.createElement('div');
     bar.className = 'eq-bar';
     bar.style.height = '2px';
-    eqContainer.appendChild(bar);
-    eqBars.push(bar);
+    container.appendChild(bar);
+    _eqBars.push(bar);
   }
 }
 
-function animateEqualizer() {
-  if (!spectrumActive || !analyser) return;
-  
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(dataArray);
-  
-  const step = Math.floor(dataArray.length / eqBars.length);
-  eqBars.forEach((bar, i) => {
-    const value = dataArray[i * step] || 0;
-    const percent = value / 255;
-    const height = Math.max(2, percent * 40);
-    bar.style.height = height + 'px';
+function _animateEqBars() {
+  if (!_vizBarsActive || !window.analyser) return;
+  const data = new Uint8Array(window.analyser.frequencyBinCount);
+  window.analyser.getByteFrequencyData(data);
+  const step = Math.floor(data.length / _eqBars.length);
+  _eqBars.forEach((bar, i) => {
+    const pct = (data[i * step] || 0) / 255;
+    bar.style.height = Math.max(2, pct * 40) + 'px';
   });
-  
-  eqAnimationId = requestAnimationFrame(animateEqualizer);
+  _eqAnimId = requestAnimationFrame(_animateEqBars);
 }
 
-function startVisualizer() {
-  spectrumActive = true;
-  const eqContainer = document.getElementById('equalizer');
-  if (eqContainer) eqContainer.classList.add('active');
-  animateEqualizer();
+function startVisualizerBars() {
+  if (_vizBarsActive) return;
+  _vizBarsActive = true;
+  const container = document.getElementById('equalizer');
+  if (container) container.classList.add('active');
+  _animateEqBars();
 }
 
-function stopVisualizer() {
-  spectrumActive = false;
-  if (eqAnimationId) cancelAnimationFrame(eqAnimationId);
-  const eqContainer = document.getElementById('equalizer');
-  if (eqContainer) eqContainer.classList.remove('active');
-  eqBars.forEach(bar => bar.style.height = '2px');
+function stopVisualizerBars() {
+  _vizBarsActive = false;
+  if (_eqAnimId) { cancelAnimationFrame(_eqAnimId); _eqAnimId = null; }
+  const container = document.getElementById('equalizer');
+  if (container) container.classList.remove('active');
+  _eqBars.forEach(bar => { bar.style.height = '2px'; });
 }
 
-// ---- EVENTOS ----
-// Inicializar visualizador quando tocar
-audio.addEventListener('play', () => {
-  if (userInteracted && !audioContext) {
-    initAudioContext();
-  }
-  startVisualizer();
-  updateFloatingPlayIcon(true);
-});
+// ── VISUALIZADOR FULLSCREEN ───────────────────────────────────────────────────
+function toggleVisualizer() {
+  markUserInteraction();
+  if (!window.Visualizer) { console.warn('[App] Visualizer não disponível'); return; }
 
-audio.addEventListener('pause', () => {
-  stopVisualizer();
-  updateFloatingPlayIcon(false);
-});
+  // Garante que o AudioContext existe antes de abrir
+  if (!window.audioContext) initAudioContext();
 
-// Atualizar ícone do play no fullscreen
-function updateFloatingPlayIcon(isPlaying) {
-  // Código existente para atualizar ícones...
-  const vizPlayBtn = document.getElementById('vizPlayBtn');
-  if (vizPlayBtn) {
-    vizPlayBtn.innerHTML = isPlaying
-      ? '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
-      : '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  }
+  const isOpen = window.Visualizer.toggleFullscreen();
+  const btn = document.getElementById('vizBtn');
+  if (btn) btn.classList.toggle('active', isOpen);
 }
 
-function animateEqualizer() {
-  if (!equalizerActive || !analyser) return;
-  
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(dataArray);
-  
-  // Atualizar barras
-  const step = Math.floor(dataArray.length / eqBars.length);
-  eqBars.forEach((bar, i) => {
-    const value = dataArray[i * step] || 0;
-    const percent = value / 255;
-    const height = Math.max(2, percent * 40);
-    bar.style.height = height + 'px';
-  });
-  
-  eqAnimationId = requestAnimationFrame(animateEqualizer);
-}
-
-function stopEqualizer() {
-  equalizerActive = false;
-  if (eqAnimationId) cancelAnimationFrame(eqAnimationId);
-  const eqContainer = document.getElementById('equalizer');
-  if (eqContainer) eqContainer.classList.remove('active');
-  
-  // Resetar barras
-  eqBars.forEach(bar => bar.style.height = '2px');
-}
-
-// Iniciar equalizador quando o áudio tocar
-audio.addEventListener('play', () => {
-  if (userInteracted) {
-    initEqualizer();
-  }
-  updateFloatingPlayIcon(true);
-});
-
-audio.addEventListener('pause', () => {
-  stopEqualizer();
-  updateFloatingPlayIcon(false);
-});
-
-// Atualizar ícone do botão flutuante
-function updateFloatingPlayIcon(isPlaying) {
-  const icon = document.getElementById('floatingPlayIcon');
-  if (icon) {
-    icon.innerHTML = isPlaying
-      ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-      : '<path d="M8 5v14l11-7z"/>';
-  }
-}
-
-// ---- TEMA OFFLINE FANTASMAGÓRICO ----
-function updateOfflineTheme() {
-  const isOffline = !navigator.onLine;
-  const body = document.body;
-  const badge = document.getElementById('offlineBadge');
-  
-  if (isOffline) {
-    body.classList.add('offline-theme');
-    if (badge) {
-      badge.innerHTML = '⚡ OFFLINE — Modo Fantasma';
-      badge.style.display = 'flex';
-    }
-    console.log('[Theme] Modo fantasma ativado');
-  } else {
-    body.classList.remove('offline-theme');
-    if (badge) {
-      badge.innerHTML = '⚡ Offline';
-      badge.style.display = 'none';
-    }
-    console.log('[Theme] Modo normal ativado');
-  }
-}
-
-// Sobrescrever a função offlineCheck existente ou adicionar listeners
-const originalOfflineCheck = offlineCheck;
-offlineCheck = function() {
-  // Chamar função original se existir
-  if (typeof originalOfflineCheck === 'function') {
-    originalOfflineCheck();
-  }
-  
-  // Adicionar tema
-  updateOfflineTheme();
-  
-  // Listeners adicionais para tema
-  window.removeEventListener('online', updateOfflineTheme);
-  window.removeEventListener('offline', updateOfflineTheme);
-  window.addEventListener('online', updateOfflineTheme);
-  window.addEventListener('offline', updateOfflineTheme);
-};
-
-// Inicializar tema ao carregar
-document.addEventListener('DOMContentLoaded', updateOfflineTheme);
-
-// ---- GESTOS DE TOQUE MELHORADOS ----
-let touchStartX = 0;
-let touchStartY = 0;
-let touchStartTime = 0;
-
-document.addEventListener('touchstart', e => {
-  touchStartX = e.changedTouches[0].screenX;
-  touchStartY = e.changedTouches[0].screenY;
-  touchStartTime = Date.now();
-}, { passive: true });
-
-document.addEventListener('touchend', e => {
-  const touchEndX = e.changedTouches[0].screenX;
-  const touchEndY = e.changedTouches[0].screenY;
-  const deltaX = touchEndX - touchStartX;
-  const deltaY = touchEndY - touchStartY;
-  const deltaTime = Date.now() - touchStartTime;
-  
-  // Swipe horizontal para mudar música (apenas se não estiver arrastando a barra de progresso)
-  if (Math.abs(deltaX) > 80 && Math.abs(deltaY) < 100 && deltaTime < 300) {
-    if (!progressBarDragging) {
-      if (deltaX > 0) {
-        prevTrack();
-        showToast('⏮ Faixa anterior');
-      } else {
-        nextTrack();
-        showToast('⏭ Próxima faixa');
-      }
-    }
-  }
-  
-  // Toque duplo na área do player para play/pause
-  if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && deltaTime < 200) {
-    // Verificar se o toque foi na área do player
-    const target = e.target;
-    if (target.closest('.player') || target.closest('.p-cover')) {
-      togglePlay();
-    }
-  }
-}, { passive: true });
-
-// ---- CONTROLE DO EQUALIZADOR ----
-function toggleEqualizer() {
-  const eqBtn = document.getElementById('eqBtn');
-  const vizEqBtn = document.getElementById('vizEqBtn');
-  
-  equalizerEnabled = !equalizerEnabled;
-  
-  if (equalizerEnabled) {
-    // Iniciar equalizador
-    initEqualizer();
-    if (eqBtn) eqBtn.classList.add('active');
-    if (vizEqBtn) vizEqBtn.classList.add('active');
-    showToast('🎵 Equalizador ativado');
-  } else {
-    // Parar equalizador
-    stopEqualizer();
-    if (eqBtn) eqBtn.classList.remove('active');
-    if (vizEqBtn) vizEqBtn.classList.remove('active');
-    showToast('🔇 Equalizador desativado');
-  }
-}
-
-// Atualizar ícone do play no visualizador fullscreen
-const originalUpdatePlayIcon = updatePlayIcon;
-updatePlayIcon = function() {
-  originalUpdatePlayIcon();
-  
-  // Atualizar ícone no fullscreen
-  const vizPlayBtn = document.getElementById('vizPlayBtn');
-  if (vizPlayBtn) {
-    const isPlaying = !audio.paused;
-    vizPlayBtn.innerHTML = isPlaying
-      ? '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
-      : '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  }
-};
-
-// Sincronizar estado do equalizador quando entrar no fullscreen
-const originalToggleVisualizer = toggleVisualizer;
-toggleVisualizer = function() {
-  originalToggleVisualizer();
-  
-  // Sincronizar estado do botão de equalizador no fullscreen
-  setTimeout(() => {
-    const vizEqBtn = document.getElementById('vizEqBtn');
-    if (vizEqBtn) {
-      if (equalizerEnabled) vizEqBtn.classList.add('active');
-      else vizEqBtn.classList.remove('active');
-    }
-  }, 100);
-};
-
-// Make functions available globally for HTML onclick handlers
-window.showView = showView;
-window.openAlbum = openAlbum;
-window.playSong = playSong;
-window.playAlbum = playAlbum;
-window.playAll = playAll;
-window.togglePlay = togglePlay;
-window.prevTrack = prevTrack;
-window.nextTrack = nextTrack;
-window.toggleShuffle = toggleShuffle;
-window.toggleRepeat = toggleRepeat;
-window.toggleLyrics = toggleLyrics;
-window.showLyrics = showLyrics;
-window.showSongAbout = showSongAbout;
-window.closeAboutPanel = closeAboutPanel;
-window.closeLyrics = closeLyrics;
-window.handleSearch = handleSearch;
-window.toggleSidebar = toggleSidebar;
-window.closeSidebar = closeSidebar;
-window.toggleDownload = toggleDownload;
-window.openGalleryLightbox = openGalleryLightbox;
+// ── GLOBALS (chamados via onclick no HTML) ────────────────────────────────────
+window.showView          = showView;
+window.openAlbum         = openAlbum;
+window.playSong          = playSong;
+window.playAlbum         = playAlbum;
+window.playAll           = playAll;
+window.togglePlay        = togglePlay;
+window.prevTrack         = prevTrack;
+window.nextTrack         = nextTrack;
+window.toggleShuffle     = toggleShuffle;
+window.toggleRepeat      = toggleRepeat;
+window.toggleLyrics      = toggleLyrics;
+window.showLyrics        = showLyrics;
+window.showSongAbout     = showSongAbout;
+window.closeAboutPanel   = closeAboutPanel;
+window.closeLyrics       = closeLyrics;
+window.handleSearch      = handleSearch;
+window.toggleSidebar     = toggleSidebar;
+window.closeSidebar      = closeSidebar;
+window.toggleDownload    = toggleDownload;
+window.openGalleryLightbox  = openGalleryLightbox;
 window.closeGalleryLightbox = closeGalleryLightbox;
-window.setVolume = setVolume;
-window.toggleSleepTimer = toggleSleepTimer;
-window.toggleVisualizer = toggleVisualizer;
-window.exportUserData = exportUserData;
-window.shareSong = shareSong;
-window.toggleEqualizer = toggleEqualizer;
-window.toggleEqPanel = toggleEqPanel;
-window.updateEqBand = updateEqBand;
-window.resetEqualizer = resetEqualizer;
-window.applyEqPreset = applyEqPreset;
+window.setVolume         = setVolume;
+window.toggleSleepTimer  = toggleSleepTimer;
+window.toggleVisualizer  = toggleVisualizer;
+window.exportUserData    = exportUserData;
+window.shareSong         = shareSong;
+window.toggleEqPanel     = toggleEqPanel;
+window.updateEqBand      = updateEqBand;
+window.resetEqualizer    = resetEqualizer;
+window.applyEqPreset     = applyEqPreset;
+window.initAudioContext  = initAudioContext;

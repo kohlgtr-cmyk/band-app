@@ -7,19 +7,11 @@
   <meta name="description" content="Discografia EchoDome — letras, player e downloads no seu aparelho." />
   <meta name="theme-color" content="#121212" />
 
-  <!-- Content Security Policy -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; media-src 'self' blob:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self';">
-
-  <!-- Preconnect for performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <link rel="manifest" href="manifest.json" />
-  <link rel="stylesheet" href="css/style.css?v=50" />
-
-  <!-- Preload critical assets -->
-  <link rel="preload" href="js/data.js?v=50" as="script" />
-  <link rel="preload" href="js/app.js?v=50" as="script" />
+  <link rel="stylesheet" href="css/style.css?v=51" />
 </head>
 <body>
 
@@ -60,7 +52,7 @@
       </button>
       <div class="search-bar">
         <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <input type="search" placeholder="Buscar nesta discografia…" autocomplete="off" aria-label="Buscar músicas nesta discografia" oninput="handleSearch(this.value)" />
+        <input type="search" placeholder="Buscar nesta discografia…" autocomplete="off" aria-label="Buscar músicas" oninput="handleSearch(this.value)" />
       </div>
     </header>
 
@@ -164,11 +156,11 @@
   <!-- PLAYER -->
   <div class="player" id="player">
 
-    <!-- Linha 1: capa + info + botão letra -->
+    <!-- Linha 1: capa + info + botões -->
     <div class="player-row player-row-info">
       <div class="p-cover" id="pCover"><span>🎵</span></div>
       <div class="p-meta">
-        <div class="p-title" id="pTitle">Nenhuma música</div>
+        <div class="p-title"  id="pTitle">Nenhuma música</div>
         <div class="p-artist" id="pArtist">—</div>
       </div>
       <button type="button" class="p-icon-btn" onclick="toggleLyrics()" id="lyricsBtn" aria-label="Letra">
@@ -182,7 +174,7 @@
     <!-- Linha 2: progress bar -->
     <div class="player-row player-row-progress">
       <span class="p-time" id="pCurrent">0:00</span>
-      <div class="p-bar" id="pBar" aria-label="Posição da faixa — clique ou arraste">
+      <div class="p-bar" id="pBar" aria-label="Posição da faixa">
         <div class="p-bar-fill" id="pFill"></div>
         <div class="p-bar-thumb" id="pThumb"></div>
       </div>
@@ -194,7 +186,7 @@
       <button type="button" class="p-icon-btn" onclick="toggleShuffle()" id="shuffleBtn" aria-label="Modo aleatório" aria-pressed="false">
         <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
       </button>
-      <button type="button" class="p-icon-btn" onclick="prevTrack()" aria-label="Voltar ao início da faixa ou faixa anterior">
+      <button type="button" class="p-icon-btn" onclick="prevTrack()" aria-label="Faixa anterior">
         <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
       <button type="button" class="p-play-btn" onclick="togglePlay()" id="playBtn" aria-label="Reproduzir ou pausar">
@@ -206,7 +198,7 @@
       <button type="button" class="p-icon-btn" onclick="toggleRepeat()" id="repeatBtn" aria-label="Repetir faixa" aria-pressed="false">
         <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
       </button>
-      <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer para dormir" title="Timer (30min)">
+      <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer" title="Timer (30min)">
         <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       </button>
       <button type="button" class="p-icon-btn" onclick="toggleEqPanel()" id="eqBtn" aria-label="Equalizador" title="Abrir Equalizador">
@@ -214,34 +206,33 @@
       </button>
     </div>
 
-    <!-- Volume (só desktop) -->
+    <!-- Volume -->
     <div class="player-row player-row-volume">
       <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
       <input type="range" id="volSlider" min="0" max="100" value="80" aria-label="Volume" oninput="setVolume(this.value)" />
     </div>
-    <!-- Equalizador -->
-    <div class="equalizer" id="equalizer">
-    <!-- Barras geradas dinamicamente pelo JS -->
-    </div>
+
+    <!-- Barras do equalizador (espectro) -->
+    <div class="equalizer" id="equalizer"></div>
+
   </div><!-- /player -->
-  <!-- Botões flutuantes de controle (mobile) -->
-<div class="player-floating-controls" id="floatingControls">
-  <button type="button" class="floating-btn prev" onclick="prevTrack()" aria-label="Anterior">
-    <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-  </button>
-  <button type="button" class="floating-btn play" onclick="togglePlay()" id="floatingPlayBtn" aria-label="Play/Pause">
-    <svg viewBox="0 0 24 24" id="floatingPlayIcon"><path d="M8 5v14l11-7z"/></svg>
-  </button>
-  <button type="button" class="floating-btn next" onclick="nextTrack()" aria-label="Próxima">
-    <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-  </button>
-</div>
+
+  <!-- Controles flutuantes mobile -->
+  <div class="player-floating-controls" id="floatingControls">
+    <button type="button" class="floating-btn prev" onclick="prevTrack()" aria-label="Anterior">
+      <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+    </button>
+    <button type="button" class="floating-btn play" onclick="togglePlay()" id="floatingPlayBtn" aria-label="Play/Pause">
+      <svg viewBox="0 0 24 24" id="floatingPlayIcon"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button type="button" class="floating-btn next" onclick="nextTrack()" aria-label="Próxima">
+      <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+    </button>
+  </div>
 
   <audio id="audio" crossorigin="anonymous"></audio>
 
-  <!-- Visualizer Canvas -->
-  <canvas id="visualizer" class="visualizer-canvas"></canvas>
-
+  <!-- Lightbox galeria -->
   <div id="galleryLightbox" class="gallery-lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada" aria-hidden="true" onclick="if(event.target===this)closeGalleryLightbox()">
     <button type="button" class="gallery-lightbox__close" onclick="closeGalleryLightbox()" aria-label="Fechar">✕</button>
     <figure class="gallery-lightbox__figure">
@@ -250,88 +241,81 @@
     </figure>
   </div>
 
-  <!-- Toast notification -->
+  <!-- Toast -->
   <div id="toast" class="toast"></div>
 
-  <script src="js/modules/visualizer.js?v=50"></script>
-  <script src="js/data.js?v=50"></script>
-  <script src="js/gallery.js?v=50"></script>
-  <script type="module" src="js/app.js?v=50"></script>
   <!-- PAINEL: Equalizador Gráfico -->
-<div class="eq-panel" id="eqPanel" aria-hidden="true">
-  <div class="eq-header">
-    <div class="panel-header-titles">
-      <p class="panel-kicker">Equalizador</p>
-      <h3>Equalizador Gráfico</h3>
+  <div class="eq-panel" id="eqPanel" aria-hidden="true">
+    <div class="eq-header">
+      <div class="panel-header-titles">
+        <p class="panel-kicker">Equalizador</p>
+        <h3>Equalizador Gráfico</h3>
+      </div>
+      <div class="eq-presets">
+        <select id="eqPreset" onchange="applyEqPreset(this.value)">
+          <option value="flat">Flat (Neutro)</option>
+          <option value="rock">Rock</option>
+          <option value="pop">Pop</option>
+          <option value="jazz">Jazz</option>
+          <option value="bass">Bass Boost</option>
+          <option value="vocal">Vocal Boost</option>
+        </select>
+        <button type="button" class="eq-reset" onclick="resetEqualizer()" title="Resetar">↺</button>
+      </div>
+      <button type="button" class="eq-close" onclick="toggleEqPanel()" aria-label="Fechar equalizador">✕</button>
     </div>
-    <div class="eq-presets">
-      <select id="eqPreset" onchange="applyEqPreset(this.value)">
-        <option value="flat">Flat (Neutro)</option>
-        <option value="rock">Rock</option>
-        <option value="pop">Pop</option>
-        <option value="jazz">Jazz</option>
-        <option value="bass">Bass Boost</option>
-        <option value="vocal">Vocal Boost</option>
-      </select>
-      <button type="button" class="eq-reset" onclick="resetEqualizer()" title="Resetar">↺</button>
+    <div class="eq-sliders">
+      <div class="eq-band" data-freq="60">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(0, this.value)">
+        <label>60Hz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="170">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(1, this.value)">
+        <label>170Hz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="350">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(2, this.value)">
+        <label>350Hz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="1000">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(3, this.value)">
+        <label>1kHz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="3500">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(4, this.value)">
+        <label>3.5kHz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="6000">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(5, this.value)">
+        <label>6kHz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="10000">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(6, this.value)">
+        <label>10kHz</label><span class="eq-value">0dB</span>
+      </div>
+      <div class="eq-band" data-freq="16000">
+        <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(7, this.value)">
+        <label>16kHz</label><span class="eq-value">0dB</span>
+      </div>
     </div>
-    <button type="button" class="eq-close" onclick="toggleEqPanel()" aria-label="Fechar equalizador">✕</button>
-  </div>
-  
-  <div class="eq-sliders">
-    <!-- 8 Bandas de frequência -->
-    <div class="eq-band" data-freq="60">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(0, this.value)">
-      <label>60Hz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="170">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(1, this.value)">
-      <label>170Hz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="350">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(2, this.value)">
-      <label>350Hz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="1000">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(3, this.value)">
-      <label>1kHz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="3500">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(4, this.value)">
-      <label>3.5kHz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="6000">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(5, this.value)">
-      <label>6kHz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="10000">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(6, this.value)">
-      <label>10kHz</label>
-      <span class="eq-value">0dB</span>
-    </div>
-    <div class="eq-band" data-freq="16000">
-      <input type="range" min="-12" max="12" value="0" step="1" class="eq-slider" oninput="updateEqBand(7, this.value)">
-      <label>16kHz</label>
-      <span class="eq-value">0dB</span>
+    <div class="eq-footer">
+      <div class="eq-master">
+        <label>Volume Master</label>
+        <input type="range" min="0" max="100" value="80" class="eq-master-slider" oninput="setVolume(this.value)">
+        <span id="eqMasterValue">80%</span>
+      </div>
     </div>
   </div>
-  
-  <div class="eq-footer">
-    <div class="eq-master">
-      <label>Volume Master</label>
-      <input type="range" min="0" max="150" value="100" class="eq-master-slider" oninput="setVolume(this.value)">
-      <span id="eqMasterValue">100%</span>
-    </div>
-    <div class="eq-info">
-      <span>Clique em uma banda para ajustar os graves, médios ou agudos</span>
-    </div>
-  </div>
-</div>
+
+  <!-- ═══ SCRIPTS — ordem importa ═══ -->
+  <!-- 1. Dados (albums, songs, BAND_NAME) -->
+  <script src="js/data.js?v=51"></script>
+  <!-- 2. Galeria (galleryPhotos) -->
+  <script src="js/gallery.js?v=51"></script>
+  <!-- 3. Visualizador (window.Visualizer) -->
+  <script src="js/modules/visualizer.js?v=51"></script>
+  <!-- 4. App principal — NÃO usa type="module" para ter acesso ao window global -->
+  <script src="js/app.js?v=51"></script>
+
 </body>
 </html>
