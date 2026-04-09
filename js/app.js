@@ -1270,7 +1270,7 @@ document.addEventListener('keydown', (e) => {
 // ---- VISUALIZADOR DE ESPECTRO (o que já existia) ----
 let eqBars = [];
 let eqAnimationId = null;
-let visualizerActive = false;
+let spectrumActive = false;
 
 function initVisualizerBars() {
   const eqContainer = document.getElementById('equalizer');
@@ -1288,7 +1288,7 @@ function initVisualizerBars() {
 }
 
 function animateEqualizer() {
-  if (!visualizerActive || !analyser) return;
+  if (!spectrumActive || !analyser) return;
   
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(dataArray);
@@ -1305,14 +1305,14 @@ function animateEqualizer() {
 }
 
 function startVisualizer() {
-  visualizerActive = true;
+  spectrumActive = true;
   const eqContainer = document.getElementById('equalizer');
   if (eqContainer) eqContainer.classList.add('active');
   animateEqualizer();
 }
 
 function stopVisualizer() {
-  visualizerActive = false;
+  spectrumActive = false;
   if (eqAnimationId) cancelAnimationFrame(eqAnimationId);
   const eqContainer = document.getElementById('equalizer');
   if (eqContainer) eqContainer.classList.remove('active');
@@ -1342,34 +1342,6 @@ function updateFloatingPlayIcon(isPlaying) {
     vizPlayBtn.innerHTML = isPlaying
       ? '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
       : '<svg viewBox="0 0 24 24" style="width:28px;height:28px;fill:currentColor"><path d="M8 5v14l11-7z"/></svg>';
-  }
-}
-  
-  // Configurar Web Audio API
-  try {
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    
-    if (!analyser) {
-      analyser = audioContext.createAnalyser();
-      analyser.fftSize = 64;
-      analyser.smoothingTimeConstant = 0.8;
-    }
-    
-    // Conectar source apenas uma vez
-    if (!source && audioContext) {
-      source = audioContext.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
-    }
-    
-    equalizerActive = true;
-    eqContainer.classList.add('active');
-    animateEqualizer();
-    
-  } catch (err) {
-    console.error('[Equalizer] Erro ao inicializar:', err);
   }
 }
 
@@ -1510,8 +1482,6 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 // ---- CONTROLE DO EQUALIZADOR ----
-let equalizerEnabled = false;
-
 function toggleEqualizer() {
   const eqBtn = document.getElementById('eqBtn');
   const vizEqBtn = document.getElementById('vizEqBtn');
