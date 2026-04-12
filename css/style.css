@@ -1022,37 +1022,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ===================== EQUALIZADOR ===================== */
-.equalizer {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  height: 40px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 3px;
-  padding: 0 20px 8px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  background: linear-gradient(to top, rgba(13,17,23,0.9), transparent);
-}
-
-.equalizer.active {
-  opacity: 1;
-}
-
-.eq-bar {
-  width: 4px;
-  background: var(--gold);
-  border-radius: 2px 2px 0 0;
-  transition: height 0.05s ease;
-  min-height: 2px;
-  max-height: 100%;
-}
-
 /* ===================== TEMA OFFLINE (FANTASMAGÓRICO) ===================== */
 body.offline-theme {
   --bg:      #0a0f1a;
@@ -1068,11 +1037,8 @@ body.offline-theme {
   --border:  rgba(0, 212, 255, 0.2);
 }
 
-body.offline-theme .equalizer .eq-bar {
-  background: linear-gradient(to top, #00d4ff, #5eead4);
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-}
-
+/* O canvas do visualizador circular usa cores hardcoded (hsla/rgba),
+   não herda CSS vars — então mantém dourado em qualquer tema. */
 body.offline-theme .player {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
   border-top: 1px solid rgba(0, 212, 255, 0.3);
