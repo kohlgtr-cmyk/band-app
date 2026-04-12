@@ -1,50 +1,36 @@
 // app.js — EchoDome
-// Versão corrigida: sem duplicatas, sem conflitos de módulo
 
-// ── STATE ────────────────────────────────────────────────────────────────────
-let currentTrack    = null;
-let queue           = [];
-let queueIndex      = 0;
-let playing         = false;
-let shuffle         = false;
-let repeat          = false;
-let currentAlbumId  = null;
-let lyricsOpen      = false;
-let aboutPanelOpen  = false;
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let currentTrack        = null;
+let queue               = [];
+let queueIndex          = 0;
+let playing             = false;
+let shuffle             = false;
+let repeat              = false;
+let currentAlbumId      = null;
+let lyricsOpen          = false;
+let aboutPanelOpen      = false;
 let galleryLightboxOpen = false;
 let progressBarDragging = false;
-let sleepTimer      = null;
-let wakeLock        = null;
-let userInteracted  = false;
-let eqPanelOpen     = false;
+let sleepTimer          = null;
+let wakeLock            = null;
+let userInteracted      = false;
+let eqPanelOpen         = false;
 
 const PREV_AT_START_SEC = 2;
 
-// ── WEB AUDIO ─────────────────────────────────────────────────────────────────
-// Variáveis globais compartilhadas com visualizer.js
-window.audioContext      = null;
-window.analyser          = null;
-window.source            = null;
-window.equalizerFilters  = [];
+// ── WEB AUDIO (compartilhado com visualizer.js) ───────────────────────────────
+window.audioContext     = null;
+window.analyser         = null;
+window.source           = null;
+window.equalizerFilters = [];
 
 const EQ_FREQUENCIES = [60, 170, 350, 1000, 3500, 6000, 10000, 16000];
-
-// ── USER INTERACTION ──────────────────────────────────────────────────────────
-function markUserInteraction() {
-  if (userInteracted) return;
-  userInteracted = true;
-  if (window.audioContext && window.audioContext.state === 'suspended') {
-    window.audioContext.resume().catch(() => {});
-  }
-}
-document.addEventListener('click',      markUserInteraction, { once: true });
-document.addEventListener('touchstart', markUserInteraction, { once: true });
-document.addEventListener('keydown',    markUserInteraction, { once: true });
 
 // ── AUDIO ELEMENT ─────────────────────────────────────────────────────────────
 const audio = document.getElementById('audio');
 
-// ── INIT ─────────────────────────────────────────────────────────────────────
+// ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 function init() {
   console.log('[Init] Iniciando EchoDome...');
   try {
@@ -62,6 +48,9 @@ function init() {
     setupTouchGestures();
     setupWakeLock();
 
+    // ── Monta o seletor de personagem na topbar ────────────────────────────
+    _mountCharacterPicker();
+
     setTimeout(registerSW, 100);
 
     document.addEventListener('keydown', (e) => {
@@ -72,15 +61,12 @@ function init() {
       else if (eqPanelOpen)    toggleEqPanel();
     });
 
-    // Sincroniza TODOS os sliders de volume via event delegation
-    // Funciona para #volSlider, .eq-master-slider e qualquer outro que apareça
     document.addEventListener('input', (e) => {
       if (e.target.id === 'volSlider' || e.target.classList.contains('eq-master-slider')) {
         setVolume(e.target.value);
       }
     });
 
-    // Aplica volume inicial igual em todos os controles
     const initialVol = document.getElementById('volSlider')?.value ?? 80;
     setVolume(initialVol);
 
@@ -96,6 +82,203 @@ if (document.readyState === 'loading') {
   setTimeout(init, 0);
 }
 
+// ── CHARACTER PICKER ──────────────────────────────────────────────────────────
+// SVGs dos instrumentos — cada personagem tem o seu
+const _INSTRUMENT_ICONS = {
+
+  // Microfone — Trace (Vocalista)
+  trace: (color, size = 22) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="11" rx="3" fill="${color}"/>
+      <path d="M5 11a7 7 0 0 0 14 0" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="12" y1="18" x2="12" y2="22" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="9"  y1="22" x2="15" y2="22" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>`,
+
+  // Guitarra elétrica — OD (Guitarrista)
+  od: (color, size = 22) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14.5 2.5 L17 5 L8 14 C7 15.8 5.5 16.5 4 16 C3.5 17.5 4.5 19 6 18.5 C5.5 20 7 21 8.5 20.5 C8 19 9.2 17.5 11 17 L20 8 L21.5 9.5 L22 6 Z"
+            stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="7.5" cy="17.5" r="1.5" fill="${color}"/>
+      <line x1="14.5" y1="2.5" x2="17"   y2="5"   stroke="${color}" stroke-width="1.5"/>
+      <line x1="16"   y1="4"   x2="18.5" y2="6.5" stroke="${color}" stroke-width="1.2" stroke-dasharray="1.5 1.5"/>
+    </svg>`,
+
+  // Baixo — Dusk (Baixista)
+  dusk: (color, size = 22) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M13 2 L16 5 L9 12 C7.5 14 6 14.8 4.5 14.3 C4 16 5 17.5 6.5 17 C6 18.8 7.5 20 9 19.5 C8.5 18 9.5 16.5 11.5 16 L19 8.5 L20 10 L21 6 Z"
+            stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+      <circle cx="7" cy="17" r="2" stroke="${color}" stroke-width="1.4"/>
+      <line x1="13" y1="2"   x2="16" y2="5"   stroke="${color}" stroke-width="1.6"/>
+      <line x1="15" y1="3.5" x2="17" y2="5.5" stroke="${color}" stroke-width="1.2" stroke-dasharray="1.2 1.2"/>
+      <line x1="14" y1="2.5" x2="16" y2="4.5" stroke="${color}" stroke-width="1"   stroke-dasharray="1 1.5" stroke-dashoffset="1"/>
+    </svg>`,
+
+  // Bateria — Ember (Baterista)
+  ember: (color, size = 22) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <ellipse cx="12" cy="16" rx="7"   ry="4"   stroke="${color}" stroke-width="1.6"/>
+      <ellipse cx="6"  cy="11" rx="3.5" ry="2"   stroke="${color}" stroke-width="1.4"/>
+      <ellipse cx="18" cy="11" rx="3.5" ry="2"   stroke="${color}" stroke-width="1.4"/>
+      <line x1="6"  y1="9"  x2="6"  y2="13" stroke="${color}" stroke-width="1.3"/>
+      <line x1="18" y1="9"  x2="18" y2="13" stroke="${color}" stroke-width="1.3"/>
+      <line x1="9"  y1="6"  x2="7"  y2="10" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>
+      <line x1="15" y1="6"  x2="17" y2="10" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="9"  cy="5.5" r="1" fill="${color}"/>
+      <circle cx="15" cy="5.5" r="1" fill="${color}"/>
+    </svg>`,
+
+  // Teclado — Lyra (Tecladista)
+  lyra: (color, size = 22) => `
+    <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="2" y="8" width="20" height="12" rx="1.5" stroke="${color}" stroke-width="1.6"/>
+      <line x1="2" y1="14" x2="22" y2="14" stroke="${color}" stroke-width="1" opacity="0.45"/>
+      <rect x="5"    y="8" width="2.2" height="7" rx="0.8" fill="${color}"/>
+      <rect x="9.4"  y="8" width="2.2" height="7" rx="0.8" fill="${color}"/>
+      <rect x="14"   y="8" width="2.2" height="7" rx="0.8" fill="${color}"/>
+      <rect x="18.4" y="8" width="2.2" height="7" rx="0.8" fill="${color}"/>
+    </svg>`,
+};
+
+const _CHARACTERS = [
+  { id:'trace', name:'Trace', role:'Vocalista',   accent:'#e8e8ff', accent2:'#c8c8ff', glow:'rgba(232,232,255,0.15)', border:'rgba(232,232,255,0.2)', avatarBg:'#0f0f1e' },
+  { id:'od',    name:'OD',    role:'Guitarrista', accent:'#39ff14', accent2:'#2acc0f', glow:'rgba(57,255,20,0.15)',   border:'rgba(57,255,20,0.2)',   avatarBg:'#061a03' },
+  { id:'dusk',  name:'Dusk',  role:'Baixista',    accent:'#ff4d2e', accent2:'#cc3318', glow:'rgba(255,77,46,0.15)',   border:'rgba(255,77,46,0.2)',   avatarBg:'#1a0803' },
+  { id:'ember', name:'Ember', role:'Baterista',   accent:'#ffe44d', accent2:'#ccb533', glow:'rgba(255,228,77,0.15)',  border:'rgba(255,228,77,0.2)',  avatarBg:'#1a1703' },
+  { id:'lyra',  name:'Lyra',  role:'Tecladista',  accent:'#00b4ff', accent2:'#007acc', glow:'rgba(0,180,255,0.15)',   border:'rgba(0,180,255,0.2)',   avatarBg:'#03111a' },
+];
+
+function _mountCharacterPicker() {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+
+  // Recupera preferência salva
+  let savedId;
+  try { savedId = localStorage.getItem('echodome_character'); } catch(_) {}
+  const initial = _CHARACTERS.find(c => c.id === savedId) || _CHARACTERS[0];
+
+  // Injeta HTML do picker
+  const wrapper = document.createElement('div');
+  wrapper.className = 'char-picker';
+  wrapper.id = 'charPicker';
+  wrapper.innerHTML = `
+    <span class="char-picker-label">Personagem</span>
+    <button type="button" class="char-dropdown-btn" id="charDropdownBtn"
+            aria-haspopup="listbox" aria-expanded="false">
+      <div class="char-btn-icon" id="charBtnIcon"></div>
+      <span class="char-btn-name" id="charBtnName"></span>
+      <svg class="char-chevron" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M7 10l5 5 5-5z"/>
+      </svg>
+    </button>
+    <div class="char-menu" id="charMenu" role="listbox" aria-label="Selecionar personagem">
+      <div class="char-menu-header">// A Banda</div>
+    </div>
+  `;
+  topbar.appendChild(wrapper);
+
+  _charBuildMenu(initial);
+  _charApplyTheme(initial);
+  _charUpdateButton(initial);
+
+  document.getElementById('charDropdownBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    _charToggle();
+  });
+  document.addEventListener('click', e => {
+    if (!wrapper.contains(e.target)) _charClose();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') _charClose();
+  });
+}
+
+function _charApplyTheme(char) {
+  const root = document.documentElement;
+  root.style.setProperty('--gold',     char.accent);
+  root.style.setProperty('--gold2',    char.accent2);
+  root.style.setProperty('--gold-dim', char.glow);
+  root.style.setProperty('--border',   char.border);
+
+  // Passa a cor accent para o visualizer usar no canvas
+  if (window.Visualizer) window.Visualizer.accentColor = char.accent;
+
+  try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
+}
+
+function _charBuildMenu(selected) {
+  const menu = document.getElementById('charMenu');
+  if (!menu) return;
+  const hdr = menu.querySelector('.char-menu-header');
+  menu.innerHTML = '';
+  menu.appendChild(hdr);
+
+  _CHARACTERS.forEach(char => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'char-option' + (char.id === selected.id ? ' selected' : '');
+    btn.setAttribute('role', 'option');
+    btn.setAttribute('aria-selected', char.id === selected.id ? 'true' : 'false');
+    btn.style.setProperty('--opt-glow', char.glow);
+    btn.innerHTML = `
+      <div class="char-opt-icon" style="background:${char.avatarBg};border:1px solid ${char.border}">
+        ${_INSTRUMENT_ICONS[char.id](char.accent, 22)}
+      </div>
+      <div class="char-opt-info">
+        <div class="char-opt-name" style="color:${char.accent}">${char.name}</div>
+        <div class="char-opt-role">${char.role}</div>
+      </div>
+      <div class="char-opt-dot" style="background:${char.accent};box-shadow:0 0 5px ${char.accent}"></div>
+    `;
+    btn.addEventListener('click', () => {
+      _charApplyTheme(char);
+      _charUpdateButton(char);
+      _charBuildMenu(char);
+      _charClose();
+    });
+    menu.appendChild(btn);
+  });
+}
+
+function _charUpdateButton(char) {
+  const icon = document.getElementById('charBtnIcon');
+  const name = document.getElementById('charBtnName');
+  if (!icon || !name) return;
+  icon.innerHTML      = _INSTRUMENT_ICONS[char.id](char.accent, 18);
+  icon.style.background = char.avatarBg;
+  icon.style.border   = `1px solid ${char.border}`;
+  name.textContent    = char.name;
+  name.style.color    = char.accent;
+}
+
+function _charToggle() {
+  const picker = document.getElementById('charPicker');
+  const btn    = document.getElementById('charDropdownBtn');
+  if (!picker) return;
+  const isOpen = picker.classList.toggle('open');
+  btn.setAttribute('aria-expanded', String(isOpen));
+}
+
+function _charClose() {
+  const picker = document.getElementById('charPicker');
+  const btn    = document.getElementById('charDropdownBtn');
+  if (!picker) return;
+  picker.classList.remove('open');
+  btn?.setAttribute('aria-expanded', 'false');
+}
+
+// ── USER INTERACTION ──────────────────────────────────────────────────────────
+function markUserInteraction() {
+  if (userInteracted) return;
+  userInteracted = true;
+  if (window.audioContext?.state === 'suspended') window.audioContext.resume().catch(() => {});
+}
+document.addEventListener('click',      markUserInteraction, { once: true });
+document.addEventListener('touchstart', markUserInteraction, { once: true });
+document.addEventListener('keydown',    markUserInteraction, { once: true });
+
 // ── SERVICE WORKER ────────────────────────────────────────────────────────────
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
@@ -104,9 +287,8 @@ async function registerSW() {
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller)
           showToast('Nova versão disponível. Recarregue para atualizar.');
-        }
       });
     });
     navigator.serviceWorker.addEventListener('message', e => {
@@ -130,9 +312,7 @@ async function registerSW() {
         showToast('Download removido');
       }
     });
-  } catch (err) {
-    console.warn('SW registration failed:', err);
-  }
+  } catch (err) { console.warn('SW registration failed:', err); }
 }
 
 function sendSWMessage(data) {
@@ -319,23 +499,19 @@ function escapeHtml(s) {
 // ── RENDERS ───────────────────────────────────────────────────────────────────
 function renderHomeAlbums() {
   const el = document.getElementById('homeAlbums');
-  if (!el) return;
-  el.innerHTML = albums.map(albumCardHTML).join('');
+  if (el) el.innerHTML = albums.map(albumCardHTML).join('');
 }
 function renderHomeSongs() {
   const el = document.getElementById('homeSongs');
-  if (!el) return;
-  el.innerHTML = getHomeSongList().map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
+  if (el) el.innerHTML = getHomeSongList().map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
 }
 function renderAllAlbumsGrid() {
   const el = document.getElementById('allAlbums');
-  if (!el) return;
-  el.innerHTML = albums.map(albumCardHTML).join('');
+  if (el) el.innerHTML = albums.map(albumCardHTML).join('');
 }
 function renderAllSongs() {
   const el = document.getElementById('allSongsList');
-  if (!el) return;
-  el.innerHTML = songs.map((s, i) => songRowHTML(s, i + 1, { musicsPage: true })).join('');
+  if (el) el.innerHTML = songs.map((s, i) => songRowHTML(s, i + 1, { musicsPage: true })).join('');
 }
 
 // ── GALLERY ───────────────────────────────────────────────────────────────────
@@ -452,10 +628,7 @@ async function playSong(songId, q) {
   updatePlayerUI();
   refreshRows();
 
-  // Atualiza info no visualizador se estiver aberto
-  if (window.Visualizer && window.Visualizer.isFullscreen) {
-    window.Visualizer._updateTrackInfo();
-  }
+  if (window.Visualizer?.isFullscreen) window.Visualizer._updateTrackInfo();
 }
 
 function playAlbum(albumId) {
@@ -471,10 +644,7 @@ function playAll() {
 function togglePlay() {
   if (!currentTrack) return;
   if (playing) { audio.pause(); }
-  else {
-    markUserInteraction();
-    audio.play().catch(e => console.warn('play failed', e));
-  }
+  else { markUserInteraction(); audio.play().catch(e => console.warn('play failed', e)); }
 }
 
 function prevTrack() {
@@ -519,33 +689,23 @@ function updatePlayerUI() {
 }
 
 function updatePlayIcon() {
-  const playIcon = document.getElementById('playIcon');
-  const playBtn  = document.getElementById('playBtn');
+  const playIcon  = document.getElementById('playIcon');
+  const playBtn   = document.getElementById('playBtn');
   const floatIcon = document.getElementById('floatingPlayIcon');
-
-  if (playIcon) playIcon.innerHTML = playing
-    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-    : '<path d="M8 5v14l11-7z"/>';
-  if (playBtn) playBtn.setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
-  if (floatIcon) floatIcon.innerHTML = playing
-    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-    : '<path d="M8 5v14l11-7z"/>';
-
-  // Sincroniza ícone no visualizador fullscreen
-  const vizIcon = document.getElementById('viz-play-icon');
-  if (vizIcon) vizIcon.innerHTML = playing
-    ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
-    : '<path d="M8 5v14l11-7z"/>';
+  const vizIcon   = document.getElementById('viz-play-icon');
+  const path = playing ? '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  if (playIcon)  playIcon.innerHTML  = path;
+  if (floatIcon) floatIcon.innerHTML = path;
+  if (vizIcon)   vizIcon.innerHTML   = path;
+  if (playBtn)   playBtn.setAttribute('aria-label', playing ? 'Pausar' : 'Reproduzir');
 }
 
 function updateMediaSession() {
   if (!('mediaSession' in navigator) || !currentTrack) return;
   const album = albums.find(a => a.id === currentTrack.albumId);
   navigator.mediaSession.metadata = new MediaMetadata({
-    title:   currentTrack.title,
-    artist:  BAND_NAME,
-    album:   album ? album.name : '',
-    artwork: album && album.cover ? [{ src: album.cover, sizes: '512x512', type: 'image/jpeg' }] : []
+    title: currentTrack.title, artist: BAND_NAME, album: album ? album.name : '',
+    artwork: album?.cover ? [{ src: album.cover, sizes: '512x512', type: 'image/jpeg' }] : []
   });
   navigator.mediaSession.setActionHandler('play',          () => audio.play());
   navigator.mediaSession.setActionHandler('pause',         () => audio.pause());
@@ -574,17 +734,13 @@ function audioEvents() {
   audio.addEventListener('loadedmetadata', () => {
     document.getElementById('pTotal').textContent = fmt(audio.duration);
   });
-  audio.addEventListener('ended', () => {
-    if (repeat) audio.play();
-    else nextTrack();
-  });
+  audio.addEventListener('ended', () => { if (repeat) audio.play(); else nextTrack(); });
   audio.addEventListener('play', () => {
     playing = true;
     updatePlayIcon();
     requestWakeLock();
-    // Inicializa AudioContext após interação
     if (userInteracted && !window.audioContext) initAudioContext();
-    else if (window.audioContext && window.audioContext.state === 'suspended') window.audioContext.resume();
+    else if (window.audioContext?.state === 'suspended') window.audioContext.resume();
     startVisualizerBars();
   });
   audio.addEventListener('pause', () => {
@@ -602,9 +758,9 @@ function syncProgressUI(t) {
   const fill  = document.getElementById('pFill');
   const thumb = document.getElementById('pThumb');
   const cur   = document.getElementById('pCurrent');
-  if (fill)  fill.style.width  = pct + '%';
-  if (thumb) thumb.style.left  = pct + '%';
-  if (cur)   cur.textContent   = fmt(t);
+  if (fill)  fill.style.width = pct + '%';
+  if (thumb) thumb.style.left = pct + '%';
+  if (cur)   cur.textContent  = fmt(t);
 }
 
 function seekFromClientX(clientX) {
@@ -642,23 +798,14 @@ function setupProgressBar() {
 }
 
 function setVolume(v) {
-  // Clampeia entre 0 e 100
   const pct = Math.min(100, Math.max(0, parseFloat(v)));
   audio.volume = pct / 100;
-
-  // Sincroniza TODOS os controles de volume em qualquer lugar da UI
-  const ids = ['volSlider', 'eq-master-slider'];
-  document.getElementById('volSlider')?.setAttribute('value', pct);
-  document.getElementById('volSlider') && (document.getElementById('volSlider').value = pct);
-
-  // Slider master do painel EQ
-  document.querySelector('.eq-master-slider') && (document.querySelector('.eq-master-slider').value = pct);
-
-  // Label de porcentagem
+  const volSlider = document.getElementById('volSlider');
+  if (volSlider) volSlider.value = pct;
+  const eqMaster = document.querySelector('.eq-master-slider');
+  if (eqMaster) eqMaster.value = pct;
   const eqMasterVal = document.getElementById('eqMasterValue');
   if (eqMasterVal) eqMasterVal.textContent = Math.round(pct) + '%';
-
-  // Fader master do mixer no visualizador fullscreen (se existir)
   const vizMasterFader = document.getElementById('viz-master-fader');
   if (vizMasterFader) vizMasterFader.value = pct;
   const vizMasterVal = document.getElementById('viz-master-val');
@@ -783,19 +930,15 @@ function offlineCheck() {
   const badge = document.getElementById('offlineBadge');
   let wasOffline = false;
 
-  // SVG do fantasma usado no badge e no toast
-  const GHOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width:18px;height:18px;fill:currentColor;flex-shrink:0"><path d="M507.88,226.131c-2.409-4.385-5.453-7.588-7.942-9.942c-5.035-4.722-11.588-7.219-18.261-7.219c-3.132,0-6.288,0.554-9.323,1.678l-0.225,0.088l-0.208,0.097c0,0-0.113,0.056-0.37,0.16c-1.822,0.836-10.279,4.658-19.12,8.239c-4.064,1.646-8.199,3.228-11.756,4.433c1.084-2.674,2.248-5.975,3.332-10.062c1.502-5.653,2.875-12.801,3.831-21.907c0.417-4.047,0.626-8.046,0.626-12.005c0.008-16.744-3.686-32.604-10.206-46.905c-9.797-21.457-25.906-39.422-45.548-52.046c-19.651-12.623-42.874-19.939-66.942-19.939c-13.049,0-25.496,2.409-37.044,6.512c-17.337,6.152-32.651,16.069-45.219,27.48c-12.559,11.42-22.388,24.308-28.708,36.739c-0.2,0.41-0.899,1.461-1.951,2.562c-1.574,1.686-3.935,3.59-6.665,4.971c-2.731,1.397-5.798,2.288-9.035,2.288c-3.252-0.016-6.754-0.843-10.761-3.364c-8.102-5.108-15.105-12.488-21.682-21.265c-6.577-8.753-12.696-18.855-19.161-29.094c-4.103-6.504-9.138-11.45-14.727-14.743c-5.59-3.284-11.708-4.891-17.747-4.883c-8.215,0-16.214,2.9-22.991,7.982c-6.77,5.083-12.35,12.351-15.916,21.256c-4.819,12.054-10.4,24.364-16.912,34.94c-6.496,10.584-13.956,19.345-22.139,24.581c-11.355,7.3-19.884,14.551-25.778,21.706c-2.947,3.574-5.236,7.14-6.834,10.729C0.908,192.797,0,196.459,0,200.105c-0.008,3.453,0.86,6.882,2.538,9.876c1.253,2.249,2.939,4.241,4.931,5.935c2.987,2.554,6.634,4.473,10.801,5.886c4.184,1.405,8.906,2.322,14.19,2.771c1.903,0.16,3.774,0.224,5.63,0.224c8.776,0,16.944-1.718,24.339-4.36c11.114-3.959,20.518-9.966,28.042-15.538c3.758-2.795,7.042-5.477,9.805-7.758c0.546-0.457,1.06-0.883,1.574-1.301c0.248,2.41,0.489,5.292,0.835,8.352c0.313,2.746,0.723,5.638,1.349,8.504c0.49,2.16,1.1,4.305,1.935,6.4c0.618,1.574,1.381,3.116,2.345,4.593c1.446,2.192,3.381,4.273,5.926,5.758c2.521,1.502,5.581,2.305,8.721,2.289c4.666-0.008,8.802-0.611,12.456-1.157c3.653-0.546,6.826-1.003,9.58-0.996c2,0,3.774,0.217,5.566,0.763c0.289,0.08,0.578,0.185,0.868,0.297c-0.402,0.377-0.78,0.787-1.085,1.285v-0.008c-14.358,23.24-32.234,37.703-49.62,48.447c-8.689,5.365-17.249,9.773-25.15,13.844c-7.918,4.08-15.178,7.782-21.361,11.949c-9.829,6.649-17.907,13.298-23.778,19.73c-2.932,3.228-5.316,6.401-7.075,9.628c-0.883,1.622-1.598,3.269-2.112,4.963c-0.506,1.702-0.827,3.469-0.827,5.284c0,1.382,0.185,2.795,0.595,4.168c0.691,2.408,2.112,4.634,3.943,6.351c1.365,1.285,2.956,2.329,4.666,3.164c2.577,1.26,5.485,2.096,8.784,2.658c3.284,0.547,6.979,0.812,11.155,0.812c7.829,0,17.37-0.94,28.973-2.932c4.866-0.843,8.906-1.324,12.15-1.542c-2.658,1.373-5.934,2.947-9.596,4.61c-14.647,6.673-35.486,14.856-49.546,19.426c-4.313,1.405-7.967,3.903-10.52,7.179c-2.562,3.26-3.983,7.316-3.975,11.452c0,3.429,0.964,6.89,2.794,10.014c2.746,4.705,7.364,8.616,13.516,11.307c6.159,2.682,13.884,4.208,23.303,4.208c2.851,0,5.847-0.136,9.01-0.418c17.458-1.614,34.434-2.61,50.15-4.168c8.994-0.9,17.57-1.992,25.608-3.51c-1.55,1.004-2.971,2.024-4.248,3.084c-2.056,1.735-3.766,3.566-5.067,5.662c-1.284,2.088-2.168,4.545-2.168,7.195c-0.008,1.622,0.344,3.269,0.988,4.73c0.562,1.284,1.325,2.425,2.2,3.421c1.549,1.742,3.396,3.028,5.444,4.088c3.091,1.574,6.657,2.642,10.808,3.372c4.144,0.731,8.866,1.1,14.174,1.1c14.038-0.007,32.226-2.61,53.86-8.865c21.633-6.264,46.68-16.197,74.24-30.941c22.782-12.182,42.079-25.094,58.662-39.06c14.752-12.431,27.335-25.689,38.329-39.96c0.056,0.032,0.096,0.057,0.136,0.081c2.498,1.341,5.485,2.152,8.649,2.144c3.758,0,7.644-1.084,11.587-3.14c2.754-1.437,5.204-2.409,7.268-3.011c2.08-0.602,3.758-0.827,4.962-0.827c0.78,0,1.333,0.096,1.671,0.192c-0.016,0.097-0.032,0.169-0.065,0.298c-0.201,0.602-0.65,1.558-1.493,2.698c-0.836,1.149-2.048,2.489-3.67,3.919c-3.943,3.461-7.018,7.652-9.17,12.086c-2.145,4.457-3.397,9.155-3.414,13.852c0,2.288,0.314,4.577,1.044,6.801c0.554,1.663,1.35,3.284,2.433,4.77c1.614,2.232,3.887,4.103,6.553,5.292c2.658,1.205,5.653,1.767,8.841,1.767c4.609-0.008,9.661-1.117,15.442-3.348c5.773-2.241,12.279-5.622,19.698-10.392c12.904-8.312,22.581-19.313,29.808-31.054c10.817-17.651,16.238-36.979,19.04-52.527c2.738-15.201,2.947-26.781,2.947-29.68c0.723-3.381,1.076-6.585,1.076-9.557C512.016,236.113,510.305,230.516,507.88,226.131z"/><path d="M294,181.491c-21.875,15.908-7.95,51.691,25.834,31.808C305.924,205.349,294,181.491,294,181.491z"/><path d="M346.334,223.674c20.244,34.964,47.861,9.202,40.489-11.042C386.822,212.632,362.033,220.454,346.334,223.674z"/></svg>`;
+  const GHOST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width:18px;height:18px;fill:currentColor;flex-shrink:0"><path d="M507.88,226.131c-2.409-4.385-5.453-7.588-7.942-9.942c-5.035-4.722-11.588-7.219-18.261-7.219c-3.132,0-6.288,0.554-9.323,1.678l-0.225,0.088l-0.208,0.097c0,0-0.113,0.056-0.37,0.16c-1.822,0.836-10.279,4.658-19.12,8.239c-4.064,1.646-8.199,3.228-11.756,4.433c1.084-2.674,2.248-5.975,3.332-10.062c1.502-5.653,2.875-12.801,3.831-21.907c0.417-4.047,0.626-8.046,0.626-12.005c0.008-16.744-3.686-32.604-10.206-46.905c-9.797-21.457-25.906-39.422-45.548-52.046c-19.651-12.623-42.874-19.939-66.942-19.939c-13.049,0-25.496,2.409-37.044,6.512c-17.337,6.152-32.651,16.069-45.219,27.48c-12.559,11.42-22.388,24.308-28.708,36.739c-0.2,0.41-0.899,1.461-1.951,2.562c-1.574,1.686-3.935,3.59-6.665,4.971c-2.731,1.397-5.798,2.288-9.035,2.288c-3.252-0.016-6.754-0.843-10.761-3.364c-8.102-5.108-15.105-12.488-21.682-21.265c-6.577-8.753-12.696-18.855-19.161-29.094c-4.103-6.504-9.138-11.45-14.727-14.743c-5.59-3.284-11.708-4.891-17.747-4.883c-8.215,0-16.214,2.9-22.991,7.982c-6.77,5.083-12.35,12.351-15.916,21.256c-4.819,12.054-10.4,24.364-16.912,34.94c-6.496,10.584-13.956,19.345-22.139,24.581c-11.355,7.3-19.884,14.551-25.778,21.706c-2.947,3.574-5.236,7.14-6.834,10.729C0.908,192.797,0,196.459,0,200.105c-0.008,3.453,0.86,6.882,2.538,9.876c1.253,2.249,2.939,4.241,4.931,5.935c2.987,2.554,6.634,4.473,10.801,5.886c4.184,1.405,8.906,2.322,14.19,2.771c1.903,0.16,3.774,0.224,5.63,0.224c8.776,0,16.944-1.718,24.339-4.36c11.114-3.959,20.518-9.966,28.042-15.538c3.758-2.795,7.042-5.477,9.805-7.758c0.546-0.457,1.06-0.883,1.574-1.301c0.248,2.41,0.489,5.292,0.835,8.352c0.313,2.746,0.723,5.638,1.349,8.504c0.49,2.16,1.1,4.305,1.935,6.4c0.618,1.574,1.381,3.116,2.345,4.593c1.446,2.192,3.381,4.273,5.926,5.758c2.521,1.502,5.581,2.305,8.721,2.289c4.666-0.008,8.802-0.611,12.456-1.157c3.653-0.546,6.826-1.003,9.58-0.996c2,0,3.774,0.217,5.566,0.763c0.289,0.08,0.578,0.185,0.868,0.297c-0.402,0.377-0.78,0.787-1.085,1.285v-0.008c-14.358,23.24-32.234,37.703-49.62,48.447c-8.689,5.365-17.249,9.773-25.15,13.844c-7.918,4.08-15.178,7.782-21.361,11.949c-9.829,6.649-17.907,13.298-23.778,19.73c-2.932,3.228-5.316,6.401-7.075,9.628c-0.883,1.622-1.598,3.269-2.112,4.963c-0.506,1.702-0.827,3.469-0.827,5.284c0,1.382,0.185,2.795,0.595,4.168c0.691,2.408,2.112,4.634,3.943,6.351c1.365,1.285,2.956,2.329,4.666,3.164c2.577,1.26,5.485,2.096,8.784,2.658c3.284,0.547,6.979,0.812,11.155,0.812c7.829,0,17.37-0.94,28.973-2.932c4.866-0.843,8.906-1.324,12.15-1.542c-2.658,1.373-5.934,2.947-9.596,4.61c-14.647,6.673-35.486,14.856-49.546,19.426c-4.313,1.405-7.967,3.903-10.52,7.179c-2.562,3.26-3.983,7.316-3.975,11.452c0,3.429,0.964,6.89,2.794,10.014c2.746,4.705,7.364,8.616,13.516,11.307c6.159,2.682,13.884,4.208,23.303,4.208c2.851,0,5.847-0.136,9.01-0.418c17.458-1.614,34.434-2.61,50.15-4.168c8.994-0.9,17.57-1.992,25.608-3.51c-1.55,1.004-2.971,2.024-4.248,3.084c-2.056,1.735-3.766,3.566-5.067,5.662c-1.284,2.088-2.168,4.545-2.168,7.195c-0.008,1.622,0.344,3.269,0.988,4.73c0.562,1.284,1.325,2.425,2.2,3.421c1.549,1.742,3.396,3.028,5.444,4.088c3.091,1.574,6.657,2.642,10.808,3.372c4.144,0.731,8.866,1.1,14.174,1.1c14.038-0.007,32.226-2.61,53.86-8.865c21.633-6.264,46.68-16.197,74.24-30.941c22.782-12.182,42.079-25.094,58.662-39.06c14.752-12.431,27.335-25.689,38.329-39.96c0.056,0.032,0.096,0.057,0.136,0.081c2.498,1.341,5.485,2.152,8.649,2.144c3.758,0,7.644-1.084,11.587-3.14c2.754-1.437,5.204-2.409,7.268-3.011c2.08-0.602,3.758-0.827,4.962-0.827c0.78,0,1.333,0.096,1.671,0.192c-0.016,0.097-0.032,0.169-0.065,0.298c-0.201,0.602-0.65,1.558-1.493,2.698c-0.836,1.149-2.048,2.489-3.67,3.919c-3.943,3.461-7.018,7.652-9.17,12.086c-2.145,4.457-3.397,9.155-3.414,13.852c0,2.288,0.314,4.577,1.044,6.801c0.554,1.663,1.35,3.284,2.433,4.77c1.614,2.232,3.887,4.103,6.553,5.292c2.658,1.205,5.653,1.767,8.841,1.767c4.609-0.008,9.661-1.117,15.442-3.348c5.773-2.241,12.279-5.622,19.698-10.392c12.904-8.312,22.581-19.313,29.808-31.054c10.817-17.651,16.238-36.979,19.04-52.527c2.738-15.201,2.947-26.781,2.947-29.68c0.723-3.381,1.076-6.585,1.076-9.557C512.016,236.113,510.305,230.516,507.88,226.131z"/></svg>`;
 
   const applyGhostTheme = (isOffline) => {
     document.body.classList.toggle('offline-theme', isOffline);
-    // Aplica o tema também ao overlay do visualizador fullscreen
     const vizOverlay = document.getElementById('viz-overlay');
     if (vizOverlay) vizOverlay.classList.toggle('offline-theme', isOffline);
     if (badge) {
       badge.style.display = isOffline ? 'flex' : 'none';
-      badge.innerHTML = isOffline
-        ? `${GHOST_SVG}<span>OFFLINE — Modo Fantasma</span>`
-        : '';
+      badge.innerHTML = isOffline ? `${GHOST_SVG}<span>OFFLINE — Modo Fantasma</span>` : '';
     }
   };
 
@@ -823,21 +966,15 @@ function setupKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     switch(e.key) {
-      case ' ':          e.preventDefault(); togglePlay();    break;
-      case 'ArrowRight': if (e.ctrlKey) nextTrack();          break;
-      case 'ArrowLeft':  if (e.ctrlKey) prevTrack();          break;
-      case 'l': case 'L': toggleLyrics();                     break;
+      case ' ':           e.preventDefault(); togglePlay(); break;
+      case 'ArrowRight':  if (e.ctrlKey) nextTrack(); break;
+      case 'ArrowLeft':   if (e.ctrlKey) prevTrack(); break;
+      case 'l': case 'L': toggleLyrics(); break;
       case 's': case 'S': if (e.ctrlKey) { e.preventDefault(); toggleShuffle(); } break;
-      case 'r': case 'R': toggleRepeat();                     break;
+      case 'r': case 'R': toggleRepeat(); break;
       case 'm': case 'M': audio.muted = !audio.muted; showToast(audio.muted ? '🔇 Mudo' : '🔊 Som ativado'); break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setVolume(Math.min(100, audio.volume * 100 + 10));
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        setVolume(Math.max(0, audio.volume * 100 - 10));
-        break;
+      case 'ArrowUp':   e.preventDefault(); setVolume(Math.min(100, audio.volume * 100 + 10)); break;
+      case 'ArrowDown': e.preventDefault(); setVolume(Math.max(0, audio.volume * 100 - 10)); break;
     }
   });
 }
@@ -870,7 +1007,6 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// Variante que aceita HTML (para SVGs inline)
 function showToastHTML(html) {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -885,7 +1021,7 @@ function exportUserData() {
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
+  a.href = url;
   a.download = `echodome-backup-${new Date().toISOString().split('T')[0]}.json`;
   a.click();
   URL.revokeObjectURL(url);
@@ -923,7 +1059,6 @@ function initAudioContext() {
     if (!AC) return null;
     window.audioContext = new AC();
 
-    // Cria os 8 filtros de EQ em cadeia
     if (window.equalizerFilters.length === 0) {
       EQ_FREQUENCIES.forEach(freq => {
         const f = window.audioContext.createBiquadFilter();
@@ -932,16 +1067,13 @@ function initAudioContext() {
       });
     }
 
-    // Connecta: source -> EQ filters -> analyser -> destination
     if (!window.source) {
       window.source = window.audioContext.createMediaElementSource(audio);
       let prev = window.source;
       window.equalizerFilters.forEach(f => { prev.connect(f); prev = f; });
-
       window.analyser = window.audioContext.createAnalyser();
       window.analyser.fftSize = 256;
       window.analyser.smoothingTimeConstant = 0.85;
-
       prev.connect(window.analyser);
       window.analyser.connect(window.audioContext.destination);
     }
@@ -954,14 +1086,13 @@ function initAudioContext() {
   }
 }
 
-// ── EQUALIZER GRÁFICO ─────────────────────────────────────────────────────────
+// ── EQUALIZER ─────────────────────────────────────────────────────────────────
 function updateEqBand(bandIndex, value) {
   const gain = parseFloat(value);
   if (!window.audioContext) initAudioContext();
   if (window.equalizerFilters[bandIndex]) {
     window.equalizerFilters[bandIndex].gain.setValueAtTime(gain, window.audioContext.currentTime);
   }
-  // Atualiza UI do painel principal
   const band = document.querySelectorAll('.eq-band')[bandIndex];
   if (band) {
     const sl = band.querySelector('.eq-slider');
@@ -969,12 +1100,10 @@ function updateEqBand(bandIndex, value) {
     if (sl) sl.value = gain;
     if (vl) vl.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
   }
-  // Atualiza UI do painel no fullscreen
   const vizVal = document.getElementById(`viz-eq-val-${bandIndex}`);
   if (vizVal) vizVal.textContent = (gain >= 0 ? '+' : '') + gain + 'dB';
   const vizSliders = document.querySelectorAll('#viz-eq-panel .viz-eq-slider');
   if (vizSliders[bandIndex]) vizSliders[bandIndex].value = gain;
-
   _updateEqButtonState();
 }
 
@@ -1022,54 +1151,51 @@ function _updateEqButtonState() {
   else if (!eqPanelOpen) btn.classList.remove('active');
 }
 
-// ── BARRAS HORIZONTAIS REMOVIDAS ─────────────────────────────────────────────
+// ── VISUALIZER BARS (stubs — removidos da UI principal) ───────────────────────
 function initVisualizerBars()  { /* removido */ }
 function startVisualizerBars() { /* removido */ }
 function stopVisualizerBars()  { /* removido */ }
 
-// ── VISUALIZADOR FULLSCREEN ───────────────────────────────────────────────────
+// ── VISUALIZER FULLSCREEN ─────────────────────────────────────────────────────
 function toggleVisualizer() {
   markUserInteraction();
   if (!window.Visualizer) { console.warn('[App] Visualizer não disponível'); return; }
-
-  // Garante que o AudioContext existe antes de abrir
   if (!window.audioContext) initAudioContext();
-
   const isOpen = window.Visualizer.toggleFullscreen();
   const btn = document.getElementById('vizBtn');
   if (btn) btn.classList.toggle('active', isOpen);
 }
 
 // ── GLOBALS (chamados via onclick no HTML) ────────────────────────────────────
-window.showView          = showView;
-window.openAlbum         = openAlbum;
-window.playSong          = playSong;
-window.playAlbum         = playAlbum;
-window.playAll           = playAll;
-window.togglePlay        = togglePlay;
-window.prevTrack         = prevTrack;
-window.nextTrack         = nextTrack;
-window.toggleShuffle     = toggleShuffle;
-window.toggleRepeat      = toggleRepeat;
-window.toggleLyrics      = toggleLyrics;
-window.showLyrics        = showLyrics;
-window.showSongAbout     = showSongAbout;
-window.closeAboutPanel   = closeAboutPanel;
-window.closeLyrics       = closeLyrics;
-window.handleSearch      = handleSearch;
-window.toggleSidebar     = toggleSidebar;
-window.closeSidebar      = closeSidebar;
-window.toggleDownload    = toggleDownload;
-window.downloadAllSongs  = downloadAllSongs;
+window.showView             = showView;
+window.openAlbum            = openAlbum;
+window.playSong             = playSong;
+window.playAlbum            = playAlbum;
+window.playAll              = playAll;
+window.togglePlay           = togglePlay;
+window.prevTrack            = prevTrack;
+window.nextTrack            = nextTrack;
+window.toggleShuffle        = toggleShuffle;
+window.toggleRepeat         = toggleRepeat;
+window.toggleLyrics         = toggleLyrics;
+window.showLyrics           = showLyrics;
+window.showSongAbout        = showSongAbout;
+window.closeAboutPanel      = closeAboutPanel;
+window.closeLyrics          = closeLyrics;
+window.handleSearch         = handleSearch;
+window.toggleSidebar        = toggleSidebar;
+window.closeSidebar         = closeSidebar;
+window.toggleDownload       = toggleDownload;
+window.downloadAllSongs     = downloadAllSongs;
 window.openGalleryLightbox  = openGalleryLightbox;
 window.closeGalleryLightbox = closeGalleryLightbox;
-window.setVolume         = setVolume;
-window.toggleSleepTimer  = toggleSleepTimer;
-window.toggleVisualizer  = toggleVisualizer;
-window.exportUserData    = exportUserData;
-window.shareSong         = shareSong;
-window.toggleEqPanel     = toggleEqPanel;
-window.updateEqBand      = updateEqBand;
-window.resetEqualizer    = resetEqualizer;
-window.applyEqPreset     = applyEqPreset;
-window.initAudioContext  = initAudioContext;
+window.setVolume            = setVolume;
+window.toggleSleepTimer     = toggleSleepTimer;
+window.toggleVisualizer     = toggleVisualizer;
+window.exportUserData       = exportUserData;
+window.shareSong            = shareSong;
+window.toggleEqPanel        = toggleEqPanel;
+window.updateEqBand         = updateEqBand;
+window.resetEqualizer       = resetEqualizer;
+window.applyEqPreset        = applyEqPreset;
+window.initAudioContext     = initAudioContext;

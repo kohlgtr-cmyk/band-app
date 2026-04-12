@@ -5,23 +5,25 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
 }
-
 :root {
-  --bg:      #0d1117;
+  --gold:      #e8e8ff;   /* padrão: Trace (branco neon) */
+  --gold2:     #c8c8ff;
+  --gold-dim:  rgba(232,232,255,0.15);
+  --border:    rgba(232,232,255,0.2);
+ --bg:      #0d1117;
   --bg2:     #131920;
   --bg3:     #1c2530;
   --bg4:     #243040;
-  --gold:    #c8874a;
-  --gold2:   #e09b58;
-  --gold-dim: rgba(200,135,74,0.15);
-  --t:       #e8ddd0;
+ --t:       #e8ddd0;
   --t2:      #7a8a99;
   --t3:      #4a5a6a;
-  --border:  rgba(200,135,74,0.2);
   --sw:      260px;
   --ph:      140px;
   --ph-desk: 88px;
+
 }
+  
+  
 
 html, body {
   height: 100%;

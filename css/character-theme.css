@@ -1,0 +1,170 @@
+/* ===================== CHARACTER PICKER ===================== */
+/* css/character-theme.css
+   Importar no index.html ANTES do style.css principal
+*/
+
+/* Wrapper — vai para a direita na topbar */
+.char-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.char-picker-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: var(--t3);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* ---- Botão principal ---- */
+.char-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px 5px 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--t);
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: background .2s, border-color .4s;
+}
+.char-dropdown-btn:hover { background: var(--bg3); }
+
+/* ícone do instrumento no botão */
+.char-btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .4s, border-color .4s;
+}
+.char-btn-icon svg { display: block; }
+
+/* nome do personagem no botão */
+.char-btn-name {
+  transition: color .4s;
+}
+
+/* chevron animado */
+.char-chevron {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0.45;
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.char-picker.open .char-chevron { transform: rotate(180deg); }
+
+/* ---- Dropdown ---- */
+.char-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  width: 240px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity .18s, transform .18s;
+  z-index: 500;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+.char-picker.open .char-menu {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.char-menu-header {
+  padding: 10px 14px 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ---- Opções ---- */
+.char-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  color: var(--t);
+  transition: background .12s;
+}
+.char-option:hover    { background: var(--bg3); }
+.char-option.selected { background: var(--bg2); }
+
+/* ícone do instrumento no menu */
+.char-opt-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: box-shadow .25s, border-color .4s;
+}
+.char-opt-icon svg { display: block; }
+
+.char-option:hover .char-opt-icon {
+  box-shadow: 0 0 14px var(--opt-glow, transparent);
+}
+
+.char-opt-info { flex: 1; }
+
+.char-opt-name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1.15;
+  transition: color .4s;
+}
+
+.char-opt-role {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: var(--t3);
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+}
+
+.char-opt-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 480px) {
+  .char-picker-label { display: none; }
+  .char-dropdown-btn { padding: 5px 8px 5px 6px; }
+  .char-btn-name     { display: none; }
+  .char-menu         { right: 0; width: 210px; }
+}
