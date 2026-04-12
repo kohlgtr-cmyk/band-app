@@ -1,7 +1,7 @@
 // EchoDome Band - Production Service Worker v50
 // Features: Audio caching, offline playback, quota handling, range requests
 
-const CACHE_VERSION = 'v50.1.03';
+const CACHE_VERSION = 'v50.1.04';
 const STATIC_CACHE = `echodome-static-${CACHE_VERSION}`;
 const MUSIC_CACHE = `echodome-music-${CACHE_VERSION}`;
 const IMAGES_CACHE = `echodome-images-${CACHE_VERSION}`;

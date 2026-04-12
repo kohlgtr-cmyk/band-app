@@ -1022,52 +1022,10 @@ function _updateEqButtonState() {
   else if (!eqPanelOpen) btn.classList.remove('active');
 }
 
-// ── VISUALIZADOR DE ESPECTRO (barrinhas no player) ────────────────────────────
-let _eqBars = [];
-let _eqAnimId = null;
-let _vizBarsActive = false;
-
-function initVisualizerBars() {
-  const container = document.getElementById('equalizer');
-  if (!container) return;
-  container.innerHTML = '';
-  _eqBars = [];
-  for (let i = 0; i < 20; i++) {
-    const bar = document.createElement('div');
-    bar.className = 'eq-bar';
-    bar.style.height = '2px';
-    container.appendChild(bar);
-    _eqBars.push(bar);
-  }
-}
-
-function _animateEqBars() {
-  if (!_vizBarsActive || !window.analyser) return;
-  const data = new Uint8Array(window.analyser.frequencyBinCount);
-  window.analyser.getByteFrequencyData(data);
-  const step = Math.floor(data.length / _eqBars.length);
-  _eqBars.forEach((bar, i) => {
-    const pct = (data[i * step] || 0) / 255;
-    bar.style.height = Math.max(2, pct * 40) + 'px';
-  });
-  _eqAnimId = requestAnimationFrame(_animateEqBars);
-}
-
-function startVisualizerBars() {
-  if (_vizBarsActive) return;
-  _vizBarsActive = true;
-  const container = document.getElementById('equalizer');
-  if (container) container.classList.add('active');
-  _animateEqBars();
-}
-
-function stopVisualizerBars() {
-  _vizBarsActive = false;
-  if (_eqAnimId) { cancelAnimationFrame(_eqAnimId); _eqAnimId = null; }
-  const container = document.getElementById('equalizer');
-  if (container) container.classList.remove('active');
-  _eqBars.forEach(bar => { bar.style.height = '2px'; });
-}
+// ── BARRAS HORIZONTAIS REMOVIDAS ─────────────────────────────────────────────
+function initVisualizerBars()  { /* removido */ }
+function startVisualizerBars() { /* removido */ }
+function stopVisualizerBars()  { /* removido */ }
 
 // ── VISUALIZADOR FULLSCREEN ───────────────────────────────────────────────────
 function toggleVisualizer() {

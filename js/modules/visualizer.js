@@ -545,6 +545,9 @@ window.Visualizer = {
     const cx = w / 2;
     const cy = h / 2;
 
+    // Detecta modo offline para trocar paleta de cores
+    const isOffline = document.body.classList.contains('offline-theme');
+
     // Fundo com trail
     this.ctx.fillStyle = 'rgba(13, 17, 23, 0.18)';
     this.ctx.fillRect(0, 0, w, h);
@@ -552,11 +555,12 @@ window.Visualizer = {
     const avg = dataArray.reduce((a, b) => a + b, 0) / bufferLength;
     const radius = 90 + (avg / 255) * 130;
 
-    // Glow central
+    // Glow central — dourado online, ciano offline
+    const glowR = isOffline ? '0, 212, 255' : '200, 135, 74';
     const grad = this.ctx.createRadialGradient(cx, cy, radius * 0.1, cx, cy, radius * 1.3);
-    grad.addColorStop(0, 'rgba(200, 135, 74, 0.12)');
-    grad.addColorStop(0.5, 'rgba(200, 135, 74, 0.05)');
-    grad.addColorStop(1, 'rgba(200, 135, 74, 0)');
+    grad.addColorStop(0,   `rgba(${glowR}, 0.14)`);
+    grad.addColorStop(0.5, `rgba(${glowR}, 0.06)`);
+    grad.addColorStop(1,   `rgba(${glowR}, 0)`);
     this.ctx.fillStyle = grad;
     this.ctx.beginPath();
     this.ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
@@ -575,7 +579,13 @@ window.Visualizer = {
       const x2 = cx + Math.cos(angle) * (75 + barLen);
       const y2 = cy + Math.sin(angle) * (75 + barLen);
 
-      this.ctx.strokeStyle = `hsla(${28 + pct * 32}, 95%, ${48 + pct * 22}%, ${0.25 + pct * 0.75})`;
+      // Online: âmbar/dourado  |  Offline: ciano/azul elétrico
+      if (isOffline) {
+        // hue 185–200 = ciano
+        this.ctx.strokeStyle = `hsla(${185 + pct * 15}, 100%, ${50 + pct * 20}%, ${0.25 + pct * 0.75})`;
+      } else {
+        this.ctx.strokeStyle = `hsla(${28 + pct * 32}, 95%, ${48 + pct * 22}%, ${0.25 + pct * 0.75})`;
+      }
       this.ctx.lineWidth = 3.5;
       this.ctx.lineCap = 'round';
       this.ctx.beginPath();
@@ -584,30 +594,18 @@ window.Visualizer = {
       this.ctx.stroke();
 
       if (pct > 0.45) {
-        this.ctx.fillStyle = `hsla(${28 + pct * 32}, 100%, 62%, ${pct * 0.9})`;
+        if (isOffline) {
+          this.ctx.fillStyle = `hsla(${185 + pct * 15}, 100%, 65%, ${pct * 0.9})`;
+        } else {
+          this.ctx.fillStyle = `hsla(${28 + pct * 32}, 100%, 62%, ${pct * 0.9})`;
+        }
         this.ctx.beginPath();
         this.ctx.arc(x2, y2, pct * 5, 0, Math.PI * 2);
         this.ctx.fill();
       }
     }
 
-    // Onda inferior
-    this._drawWave(dataArray, bufferLength, w, h);
-
     this.animationId = requestAnimationFrame(() => this._draw());
-  },
-
-  _drawWave: function (dataArray, bufferLength, w, h) {
-    const bars = 48;
-    const step = Math.floor(bufferLength / bars);
-    const bw = w / bars;
-    for (let i = 0; i < bars; i++) {
-      const v = dataArray[i * step] || 0;
-      const pct = v / 255;
-      const bh = pct * h * 0.22;
-      this.ctx.fillStyle = `rgba(200, 135, 74, ${pct * 0.35})`;
-      this.ctx.fillRect(i * bw, h - bh - 120, bw - 2, bh);
-    }
   },
 
   // ─── TOGGLE FULLSCREEN ────────────────────────────────────────────────────
