@@ -955,7 +955,6 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .player-row { display: flex !important; align-items: center; }
   .player-row-info { flex: 0 0 auto; gap: 10px; padding-bottom: 6px; }
   .player-row-progress { flex: 0 0 auto; gap: 8px; padding-bottom: 4px; }
-  .player-row-controls { flex: 0 0 auto; justify-content: space-around; padding-top: 2px; }
   .player-row-volume { display: none !important; }
 
   .p-cover { width: 40px; height: 40px; font-size: 18px; }
@@ -963,16 +962,21 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .p-artist { font-size: 10px; }
   .p-icon-btn { padding: 6px; }
   .p-icon-btn svg { width: 22px; height: 22px; }
-  /* Play/pause mobile: 10px maior que desktop, centralizado */
+
+  /* Play/pause mobile: ~10px maior que desktop (42px → 52px) */
   .p-play-btn { width: 52px; height: 52px; }
   .p-play-btn svg { width: 24px; height: 24px; }
   .p-time { font-size: 10px; }
 
   /* Centraliza a fila de controles (prev · play · next) */
   .player-row-controls {
+    flex: 0 0 auto;
+    display: flex;
     justify-content: center;
-    gap: 16px;
+    align-items: center;
+    gap: 20px;
     width: 100%;
+    padding-top: 2px;
   }
 
   .lyrics-panel,
@@ -1058,81 +1062,82 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 }
 
 /* ===================== TEMA OFFLINE (FANTASMAGÓRICO) ===================== */
+/*
+   No modo fantasma mantemos apenas as variáveis de fundo/texto.
+   As cores de destaque (--gold, --gold2, --gold-dim, --border) continuam
+   vindo do personagem ativo via character-theme.js → :root CSS vars.
+*/
 body.offline-theme {
   --bg:       #0a0f1a;
   --bg2:      #0d1320;
   --bg3:      #111827;
   --bg4:      #1e293b;
-  --gold:     #00d4ff;
-  --gold2:    #5eead4;
-  --gold-dim: rgba(0, 212, 255, 0.15);
   --t:        #e0f2f1;
   --t2:       #94a3b8;
   --t3:       #64748b;
-  --border:   rgba(0, 212, 255, 0.2);
   /* Sobrescreve o background inline injetado pelo JS do personagem */
   background: #0a0f1a !important;
 }
 
 body.offline-theme .player {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
-  border-top: 1px solid rgba(0, 212, 255, 0.3);
-  box-shadow: 0 -4px 20px rgba(0, 212, 255, 0.1);
+  border-top: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  box-shadow: 0 -4px 20px color-mix(in srgb, var(--gold) 10%, transparent);
 }
 
 body.offline-theme .sidebar {
   /* Sobrescreve o background inline injetado pelo JS do personagem */
   background: #050810 !important;
-  border-right: 1px solid rgba(0, 212, 255, 0.2);
+  border-right: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
 }
 
 body.offline-theme .album-card:hover,
 body.offline-theme .song-row:hover {
-  background: rgba(0, 212, 255, 0.05);
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+  background: color-mix(in srgb, var(--gold) 5%, transparent);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--gold) 10%, transparent);
 }
 
 body.offline-theme .song-row.playing {
-  background: linear-gradient(90deg, rgba(0, 212, 255, 0.15), transparent);
-  border-left: 3px solid #00d4ff;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 15%, transparent), transparent);
+  border-left: 3px solid var(--gold);
 }
 
 body.offline-theme .btn-green {
-  background: linear-gradient(135deg, #00d4ff, #0891b2);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 body.offline-theme .p-play-btn {
-  background: #00d4ff;
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  background: var(--gold);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--gold) 60%, transparent);
 }
 
 body.offline-theme .p-bar-fill {
-  background: linear-gradient(90deg, #00d4ff, #5eead4);
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 50%, transparent);
 }
 
 body.offline-theme .p-bar-thumb {
-  background: #5eead4;
-  box-shadow: 0 0 15px rgba(94, 234, 212, 0.8);
+  background: var(--gold2);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--gold2) 80%, transparent);
 }
 
 body.offline-theme .view-title,
 body.offline-theme .logo-text,
 body.offline-theme .section-label {
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  text-shadow: 0 0 20px color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 body.offline-theme .offline-badge {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: rgba(0, 212, 255, 0.4);
-  color: #00d4ff;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.2);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  color: var(--gold);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--gold) 20%, transparent);
 }
 
 /* Toast no modo fantasma usa fundo ciano escuro */
 body.offline-theme .toast {
-  background: #00d4ff;
+  background: var(--gold);
   color: #000;
 }
 body.offline-theme .toast svg { fill: #000; }
@@ -1140,26 +1145,26 @@ body.offline-theme .toast svg { fill: #000; }
 body.offline-theme .lyrics-panel,
 body.offline-theme .about-panel {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
-  border-left: 1px solid rgba(0, 212, 255, 0.3);
+  border-left: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 body.offline-theme .nav-btn.active {
-  background: rgba(0, 212, 255, 0.15);
-  color: #00d4ff;
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
+  color: var(--gold);
 }
 
 body.offline-theme .nav-btn:hover {
-  background: rgba(0, 212, 255, 0.08);
-  color: #5eead4;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  color: var(--gold2);
 }
 
 body.offline-theme .song-plays {
-  color: #00d4ff;
+  color: var(--gold);
 }
 
 body.offline-theme .p-artist,
 body.offline-theme .album-label {
-  color: #5eead4;
+  color: var(--gold2);
 }
 
 /* Animação fantasmagórica sutil */
@@ -1168,8 +1173,8 @@ body.offline-theme .view-title {
 }
 
 @keyframes ghostly-glow {
-  from { text-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
-  to { text-shadow: 0 0 30px rgba(0, 212, 255, 0.5), 0 0 40px rgba(94, 234, 212, 0.3); }
+  from { text-shadow: 0 0 10px color-mix(in srgb, var(--gold) 20%, transparent); }
+  to { text-shadow: 0 0 30px color-mix(in srgb, var(--gold) 50%, transparent), 0 0 40px color-mix(in srgb, var(--gold2) 30%, transparent); }
 }
 
 /* Efeito de "neblina" no background */
@@ -1181,8 +1186,8 @@ body.offline-theme::before {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(94, 234, 212, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, color-mix(in srgb, var(--gold) 3%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--gold2) 3%, transparent) 0%, transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
@@ -1249,35 +1254,35 @@ body.offline-theme::before {
 
 /* Tema offline nos botões do visualizador */
 body.offline-theme .viz-control-btn {
-  border-color: rgba(0, 212, 255, 0.4);
-  color: #00d4ff;
+  border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+  color: var(--gold);
   background: rgba(10, 15, 26, 0.8);
 }
 
 body.offline-theme .viz-control-btn:hover {
-  background: #00d4ff;
+  background: var(--gold);
   color: #000;
-  border-color: #00d4ff;
-  box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+  border-color: var(--gold);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--gold) 50%, transparent);
 }
 
 body.offline-theme .viz-control-btn.viz-play {
-  background: #00d4ff;
+  background: var(--gold);
   color: #000;
 }
 
 body.offline-theme .viz-control-btn.viz-play:hover {
-  box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--gold) 60%, transparent);
 }
 
 body.offline-theme .viz-control-btn.viz-eq.active {
-  background: #00d4ff;
+  background: var(--gold);
   animation: pulse-eq-ghost 2s infinite;
 }
 
 @keyframes pulse-eq-ghost {
-  0%, 100% { box-shadow: 0 0 15px rgba(0, 212, 255, 0.5); }
-  50% { box-shadow: 0 0 35px rgba(0, 212, 255, 0.9), 0 0 50px rgba(94, 234, 212, 0.4); }
+  0%, 100% { box-shadow: 0 0 15px color-mix(in srgb, var(--gold) 50%, transparent); }
+  50% { box-shadow: 0 0 35px color-mix(in srgb, var(--gold) 90%, transparent), 0 0 50px color-mix(in srgb, var(--gold2) 40%, transparent); }
 }
 
 /* Botão de equalizador no player principal */
@@ -1287,7 +1292,7 @@ body.offline-theme .viz-control-btn.viz-eq.active {
 }
 
 body.offline-theme .p-icon-btn#eqBtn.active {
-  color: #00d4ff;
+  color: var(--gold);
   animation: pulse-eq-ghost-small 2s infinite;
 }
 
@@ -1297,8 +1302,8 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 }
 
 @keyframes pulse-eq-ghost-small {
-  0%, 100% { filter: drop-shadow(0 0 3px rgba(0, 212, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.9)); }
+  0%, 100% { filter: drop-shadow(0 0 3px color-mix(in srgb, var(--gold) 50%, transparent)); }
+  50% { filter: drop-shadow(0 0 10px color-mix(in srgb, var(--gold) 90%, transparent)); }
 }
 
 /* Ocultar botões flutuantes antigos (mobile) - REMOVER SE EXISTIR */
@@ -1573,64 +1578,64 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 /* ===================== TEMA OFFLINE - EQUALIZADOR ===================== */
 body.offline-theme .eq-panel {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
-  border-left: 1px solid rgba(0, 212, 255, 0.3);
+  border-left: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 body.offline-theme .eq-slider::-webkit-slider-thumb {
-  background: #00d4ff;
+  background: var(--gold);
   border-color: #e0f2f1;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--gold) 60%, transparent);
 }
 
 body.offline-theme .eq-slider::-webkit-slider-track {
   background: linear-gradient(to right, 
-    rgba(0, 212, 255, 0.4) 0%, 
-    rgba(0, 212, 255, 0.1) 40%, 
-    rgba(0, 212, 255, 0.1) 60%, 
-    rgba(0, 212, 255, 0.4) 100%
+    color-mix(in srgb, var(--gold) 40%, transparent) 0%, 
+    color-mix(in srgb, var(--gold) 10%, transparent) 40%, 
+    color-mix(in srgb, var(--gold) 10%, transparent) 60%, 
+    color-mix(in srgb, var(--gold) 40%, transparent) 100%
   );
 }
 
 body.offline-theme .eq-value {
-  color: #00d4ff;
-  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  color: var(--gold);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--gold) 50%, transparent);
 }
 
 body.offline-theme .eq-presets select {
-  background: rgba(0, 212, 255, 0.1);
-  border-color: rgba(0, 212, 255, 0.3);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
   color: #e0f2f1;
 }
 
 body.offline-theme .eq-presets select:hover {
-  border-color: #00d4ff;
+  border-color: var(--gold);
 }
 
 body.offline-theme .eq-reset {
-  background: rgba(0, 212, 255, 0.15);
-  color: #00d4ff;
-  border-color: rgba(0, 212, 255, 0.3);
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
 }
 
 body.offline-theme .eq-reset:hover {
-  background: #00d4ff;
+  background: var(--gold);
   color: #000;
 }
 
 body.offline-theme .p-icon-btn#eqBtn.active {
-  color: #00d4ff;
-  background: rgba(0, 212, 255, 0.15);
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
   animation: pulse-eq-ghost-btn 2s infinite;
 }
 
 @keyframes pulse-eq-ghost-btn {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
-  50% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 40%, transparent); }
+  50% { box-shadow: 0 0 0 10px transparent; }
 }
 
 body.offline-theme .eq-master-slider::-webkit-slider-thumb {
-  background: #00d4ff;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.6);
+  background: var(--gold);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 60%, transparent);
 }
 
 /* Mobile */
@@ -1691,12 +1696,12 @@ body.offline-theme .eq-master-slider::-webkit-slider-thumb {
 /* Ghost mode nos sliders de volume */
 body.offline-theme #volSlider::-webkit-slider-thumb,
 body.offline-theme .eq-master-slider::-webkit-slider-thumb {
-  background: #00d4ff;
-  box-shadow: 0 0 10px rgba(0,212,255,.7);
+  background: var(--gold);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 70%, transparent);
 }
 body.offline-theme #volSlider::-moz-range-thumb,
 body.offline-theme .eq-master-slider::-moz-range-thumb {
-  background: #00d4ff;
+  background: var(--gold);
 }
 
 /* ===================== TEMA FANTASMA — NOVO VISUALIZADOR ===================== */
@@ -1706,78 +1711,78 @@ body.offline-theme #viz-overlay {
 }
 
 body.offline-theme #viz-overlay .viz-close-btn {
-  background: rgba(0,212,255,.12);
-  border-color: rgba(0,212,255,.5);
-  color: #00d4ff;
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+  color: var(--gold);
 }
 body.offline-theme #viz-overlay .viz-close-btn:hover {
-  background: #00d4ff;
+  background: var(--gold);
   color: #000;
 }
 
 body.offline-theme #viz-overlay .viz-title {
-  color: #00d4ff;
-  text-shadow: 0 0 30px rgba(0,212,255,.6), 0 0 60px rgba(94,234,212,.3);
+  color: var(--gold);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--gold) 60%, transparent), 0 0 60px color-mix(in srgb, var(--gold2) 30%, transparent);
   animation: ghost-title-pulse 3s ease-in-out infinite alternate;
 }
 @keyframes ghost-title-pulse {
-  from { text-shadow: 0 0 15px rgba(0,212,255,.4); }
-  to   { text-shadow: 0 0 40px rgba(0,212,255,.9), 0 0 70px rgba(94,234,212,.5); }
+  from { text-shadow: 0 0 15px color-mix(in srgb, var(--gold) 40%, transparent); }
+  to   { text-shadow: 0 0 40px color-mix(in srgb, var(--gold) 90%, transparent), 0 0 70px color-mix(in srgb, var(--gold2) 50%, transparent); }
 }
 
 body.offline-theme #viz-overlay .viz-ctrl-play {
-  background: #00d4ff;
-  box-shadow: 0 0 28px rgba(0,212,255,.7);
+  background: var(--gold);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--gold) 70%, transparent);
 }
 body.offline-theme #viz-overlay .viz-ctrl-play:hover {
-  background: #5eead4;
-  box-shadow: 0 0 42px rgba(0,212,255,.9);
+  background: var(--gold2);
+  box-shadow: 0 0 42px color-mix(in srgb, var(--gold) 90%, transparent);
 }
 body.offline-theme #viz-overlay .viz-ctrl-btn {
-  border-color: rgba(0,212,255,.3);
-  color: #00d4ff;
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
+  color: var(--gold);
 }
 body.offline-theme #viz-overlay .viz-ctrl-btn:hover {
-  background: rgba(0,212,255,.2);
-  border-color: #00d4ff;
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  border-color: var(--gold);
 }
 
 body.offline-theme #viz-overlay .viz-progress-fill {
-  background: linear-gradient(90deg, #00d4ff, #5eead4);
-  box-shadow: 0 0 8px rgba(0,212,255,.6);
+  background: linear-gradient(90deg, var(--gold), var(--gold2));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 60%, transparent);
 }
-body.offline-theme #viz-overlay .viz-progress-thumb { background: #5eead4; }
+body.offline-theme #viz-overlay .viz-progress-thumb { background: var(--gold2); }
 
 body.offline-theme #viz-overlay .viz-sec-btn {
-  border-color: rgba(0,212,255,.25);
-  color: rgba(0,212,255,.8);
+  border-color: color-mix(in srgb, var(--gold) 25%, transparent);
+  color: color-mix(in srgb, var(--gold) 80%, transparent);
 }
 body.offline-theme #viz-overlay .viz-sec-btn:hover,
 body.offline-theme #viz-overlay .viz-sec-btn.active {
-  border-color: #00d4ff;
-  background: rgba(0,212,255,.2);
-  color: #00d4ff;
+  border-color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  color: var(--gold);
 }
 
 body.offline-theme #viz-overlay .viz-panel {
   background: rgba(4,8,18,.96);
-  border-color: rgba(0,212,255,.25);
+  border-color: color-mix(in srgb, var(--gold) 25%, transparent);
 }
-body.offline-theme #viz-overlay .viz-panel-header { color: #00d4ff; }
-body.offline-theme #viz-overlay .viz-eq-val { color: #00d4ff; }
-body.offline-theme #viz-overlay .viz-eq-slider { accent-color: #00d4ff; }
+body.offline-theme #viz-overlay .viz-panel-header { color: var(--gold); }
+body.offline-theme #viz-overlay .viz-eq-val { color: var(--gold); }
+body.offline-theme #viz-overlay .viz-eq-slider { accent-color: var(--gold); }
 body.offline-theme #viz-overlay select#viz-eq-preset {
-  background: rgba(0,212,255,.08);
-  border-color: rgba(0,212,255,.3);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
   color: #e0f2f1;
 }
 body.offline-theme #viz-overlay .viz-eq-reset,
 body.offline-theme #viz-overlay .viz-mixer-reset {
-  border-color: rgba(0,212,255,.3);
-  color: #00d4ff;
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
+  color: var(--gold);
 }
 body.offline-theme #viz-overlay .viz-mute-btn.active {
-  background: rgba(0,212,255,.2);
-  border-color: #00d4ff;
-  color: #00d4ff;
+  background: color-mix(in srgb, var(--gold) 20%, transparent);
+  border-color: var(--gold);
+  color: var(--gold);
 }

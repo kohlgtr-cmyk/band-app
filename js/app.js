@@ -191,8 +191,20 @@ function _charApplyTheme(char) {
     root.style.setProperty('--bg2', char.bg2);
     root.style.setProperty('--bg3', char.bg3);
     root.style.setProperty('--bg4', char.bg4);
+    // Aplica o fundo no html, body e .main para cobrir todos os cenários:
+    // desktop herda pelo body; no mobile (flex-direction: column) o .main
+    // cobre a tela e precisa receber o background diretamente.
+    document.documentElement.style.background = char.bg;
     document.body.style.background = char.bg;
+    const mainEl = document.querySelector('.main');
+    if (mainEl) mainEl.style.background = char.bg;
     if (sidebar) sidebar.style.background = char.bgSidebar;
+  } else {
+    // No modo offline limpa qualquer inline background residual do personagem
+    document.documentElement.style.background = '';
+    document.body.style.background = '';
+    const mainEl2 = document.querySelector('.main');
+    if (mainEl2) mainEl2.style.background = '';
   }
 
   // Visualizer canvas
@@ -1040,7 +1052,10 @@ function offlineCheck() {
       root.style.setProperty('--bg2', _currentChar.bg2);
       root.style.setProperty('--bg3', _currentChar.bg3);
       root.style.setProperty('--bg4', _currentChar.bg4);
+      document.documentElement.style.background = _currentChar.bg;
       document.body.style.background = _currentChar.bg;
+      const mainElR = document.querySelector('.main');
+      if (mainElR) mainElR.style.background = _currentChar.bg;
       const sidebar = document.getElementById('sidebar');
       if (sidebar) sidebar.style.background = _currentChar.bgSidebar;
     }
