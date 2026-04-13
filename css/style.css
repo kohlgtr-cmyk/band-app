@@ -32,37 +32,31 @@ html, body {
   color: var(--t);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
-  transition: background 0.6s ease;
+  transition: background 0.5s ease;
 }
 
-/* ── Pulsação neon — aplicada pelo JS quando online ────────────────────────── */
-/* O JS injeta a keyframe "neonPulse" com a cor certa e adiciona .neon-pulse ao :root */
+/* ── Pulsação neon (online) ───────────────────────────────────────────────────
+   JS adiciona .neon-pulse ao <html> quando online + personagem ativo.
+   Remove quando offline — sem pulso no modo fantasma.                        */
 
-/* Logo pulsa online */
 :root.neon-pulse .logo-text {
-  animation: neonTextPulse 2.8s ease-in-out infinite;
+  animation: neonTextPulse 3s ease-in-out infinite;
 }
-
-/* Botão ativo na nav pulsa online */
 :root.neon-pulse .nav-btn.active {
-  animation: neonPulse 2.8s ease-in-out infinite;
+  animation: neonPulse 3s ease-in-out infinite;
 }
-
-/* Barra de progresso pulsa online */
-:root.neon-pulse #pFill {
-  animation: neonBorderPulse 2.8s ease-in-out infinite;
-}
-
-/* Botão play principal pulsa online */
 :root.neon-pulse #playBtn {
-  animation: neonPulse 2.2s ease-in-out infinite;
+  animation: neonPulse 2.4s ease-in-out infinite;
+}
+:root.neon-pulse #pFill {
+  animation: neonFillPulse 3s ease-in-out infinite;
 }
 
-/* Offline: remove tudo — sem pulso, sem brilho extra */
+/* Offline: garante que nada pulsa mesmo se .neon-pulse ainda existir */
 body.offline-theme .logo-text,
 body.offline-theme .nav-btn.active,
-body.offline-theme #pFill,
-body.offline-theme #playBtn {
+body.offline-theme #playBtn,
+body.offline-theme #pFill {
   animation: none !important;
   box-shadow: none !important;
   text-shadow: none !important;
@@ -84,7 +78,7 @@ body { display: flex; flex-direction: row; }
   z-index: 10;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  transition: background 0.6s ease, border-color 0.4s ease;
+  transition: background 0.5s ease, border-color 0.4s ease;
 }
 
 .main {
@@ -1570,6 +1564,19 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 }
 
 /* ===================== TEMA OFFLINE - EQUALIZADOR ===================== */
+
+/* Fundo neutro fantasma — ignora a cor do personagem */
+body.offline-theme {
+  background: #0d1117 !important;
+}
+body.offline-theme .sidebar {
+  background: #080c10 !important;
+}
+body.offline-theme .main,
+body.offline-theme .content {
+  background: transparent;
+}
+
 body.offline-theme .eq-panel {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
   border-left: 1px solid rgba(0, 212, 255, 0.3);

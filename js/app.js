@@ -143,13 +143,31 @@ const _INSTRUMENT_ICONS = {
 };
 
 const _CHARACTERS = [
-  // bgBase  = cor principal do fundo (bem escura, tinge o app sutilmente)
-  // bgDeep  = sidebar / áreas mais escuras
-  { id:'trace', name:'Trace', role:'Vocalista',   accent:'#e8e8ff', accent2:'#c8c8ff', glow:'rgba(232,232,255,0.15)', border:'rgba(232,232,255,0.2)', avatarBg:'#0f0f1e', bgBase:'#0d0d14', bgDeep:'#080810', bg2:'#11111c', bg3:'#181826' },
-  { id:'od',    name:'OD',    role:'Guitarrista', accent:'#39ff14', accent2:'#2acc0f', glow:'rgba(57,255,20,0.15)',   border:'rgba(57,255,20,0.2)',   avatarBg:'#061a03', bgBase:'#090f07', bgDeep:'#050b04', bg2:'#0e160b', bg3:'#152011' },
-  { id:'dusk',  name:'Dusk',  role:'Baixista',    accent:'#ff4d2e', accent2:'#cc3318', glow:'rgba(255,77,46,0.15)',   border:'rgba(255,77,46,0.2)',   avatarBg:'#1a0803', bgBase:'#110806', bgDeep:'#0a0403', bg2:'#170d09', bg3:'#201410' },
-  { id:'ember', name:'Ember', role:'Baterista',   accent:'#ffe44d', accent2:'#ccb533', glow:'rgba(255,228,77,0.15)',  border:'rgba(255,228,77,0.2)',  avatarBg:'#1a1703', bgBase:'#0f0f06', bgDeep:'#090903', bg2:'#151503', bg3:'#1e1e08' },
-  { id:'lyra',  name:'Lyra',  role:'Tecladista',  accent:'#00b4ff', accent2:'#007acc', glow:'rgba(0,180,255,0.15)',   border:'rgba(0,180,255,0.2)',   avatarBg:'#03111a', bgBase:'#060d12', bgDeep:'#03080d', bg2:'#0a1520', bg3:'#0f1f2e' },
+  // Trace — branco neon / cinza azulado escuro
+  { id:'trace', name:'Trace', role:'Vocalista',
+    accent:'#e8e8ff', accent2:'#c8c8ff',
+    glow:'rgba(232,232,255,0.18)', border:'rgba(232,232,255,0.2)', avatarBg:'#0f0f1e',
+    bg:'#12131a', bgSidebar:'#0c0d12', bg2:'#181921', bg3:'#1e1f2a', bg4:'#252637' },
+  // OD — verde neon / preto esverdeado (cabelo verde)
+  { id:'od', name:'OD', role:'Guitarrista',
+    accent:'#39ff14', accent2:'#2acc0f',
+    glow:'rgba(57,255,20,0.18)', border:'rgba(57,255,20,0.2)', avatarBg:'#061a03',
+    bg:'#0b120a', bgSidebar:'#070d06', bg2:'#101a0e', bg3:'#162413', bg4:'#1c2e18' },
+  // Dusk — vermelho neon / preto avermelhado (cabelo ruivo)
+  { id:'dusk', name:'Dusk', role:'Baixista',
+    accent:'#ff4d2e', accent2:'#cc3318',
+    glow:'rgba(255,77,46,0.18)', border:'rgba(255,77,46,0.2)', avatarBg:'#1a0803',
+    bg:'#140a07', bgSidebar:'#0d0604', bg2:'#1c0f0a', bg3:'#24150e', bg4:'#2e1b12' },
+  // Ember — amarelo neon / preto ambar (cabelo loiro)
+  { id:'ember', name:'Ember', role:'Baterista',
+    accent:'#ffe44d', accent2:'#ccb533',
+    glow:'rgba(255,228,77,0.18)', border:'rgba(255,228,77,0.2)', avatarBg:'#1a1703',
+    bg:'#131108', bgSidebar:'#0d0b05', bg2:'#1a180b', bg3:'#222010', bg4:'#2a2814' },
+  // Lyra — azul neon / preto azulado
+  { id:'lyra', name:'Lyra', role:'Tecladista',
+    accent:'#00b4ff', accent2:'#007acc',
+    glow:'rgba(0,180,255,0.18)', border:'rgba(0,180,255,0.2)', avatarBg:'#03111a',
+    bg:'#080f16', bgSidebar:'#050a0f', bg2:'#0d1620', bg3:'#121e2b', bg4:'#172637' },
 ];
 
 function _mountCharacterPicker() {
@@ -197,72 +215,70 @@ function _mountCharacterPicker() {
   });
 }
 
+// Personagem ativo — usado pela pulsação neon
+let _currentChar = null;
+
 function _charApplyTheme(char) {
   const root = document.documentElement;
 
-  // ── Cores accent (gold) ────────────────────────────────────────────────────
+  // Cores accent
   root.style.setProperty('--gold',     char.accent);
   root.style.setProperty('--gold2',    char.accent2);
   root.style.setProperty('--gold-dim', char.glow);
   root.style.setProperty('--border',   char.border);
 
-  // ── Fundo dinâmico do personagem ──────────────────────────────────────────
-  // Substitui as variáveis --bg* pelo esquema de cor escuro do personagem
-  root.style.setProperty('--bg',         char.bgBase);
-  root.style.setProperty('--bg2',        char.bg2);
-  root.style.setProperty('--bg3',        char.bg3);
-  root.style.setProperty('--bg4',        char.bg3); // bg4 acompanha bg3
-  root.style.setProperty('--bg-sidebar', char.bgDeep);
+  // Fundos dinâmicos por personagem
+  root.style.setProperty('--bg',  char.bg);
+  root.style.setProperty('--bg2', char.bg2);
+  root.style.setProperty('--bg3', char.bg3);
+  root.style.setProperty('--bg4', char.bg4);
 
-  // Cor do body e sidebar (mais escura que bgBase)
-  document.body.style.background = char.bgDeep;
+  // Sidebar usa cor mais escura
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.background = char.bgSidebar;
 
-  // ── Pulsação neon — só pulsa quando ONLINE ─────────────────────────────────
-  // A classe 'neon-pulse' é adicionada/removida conforme conectividade.
-  // _neonPulseUpdate() lê o personagem ativo e decide se pulsa ou não.
+  // Body background
+  document.body.style.background = char.bg;
+
+  // Visualizer canvas
+  if (window.Visualizer) window.Visualizer.accentColor = char.accent;
+
+  // Pulsação neon
   _currentChar = char;
   _neonPulseUpdate();
-
-  // ── Visualizer canvas ─────────────────────────────────────────────────────
-  if (window.Visualizer) window.Visualizer.accentColor = char.accent;
 
   try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
 }
 
-// Referência ao personagem ativo (usada pela pulsação)
-let _currentChar = null;
-
-// Adiciona ou remove a classe de pulsação no :root conforme online/offline
-function _neonPulseUpdate() {
-  const isOnline  = navigator.onLine;
-  const root      = document.documentElement;
-  if (isOnline && _currentChar) {
-    root.classList.add('neon-pulse');
-    // Injeta a keyframe com a cor correta do personagem ativo
-    _injectNeonKeyframe(_currentChar.accent, _currentChar.glow);
-  } else {
-    root.classList.remove('neon-pulse');
-  }
-}
-
-// Injeta (ou atualiza) o keyframe de pulsação neon com a cor certa
+// Injeta @keyframes com a cor exata do personagem ativo
 function _injectNeonKeyframe(accent, glow) {
   let el = document.getElementById('_neon-kf');
   if (!el) { el = document.createElement('style'); el.id = '_neon-kf'; document.head.appendChild(el); }
   el.textContent = `
     @keyframes neonPulse {
-      0%,100% { box-shadow: 0 0 0px ${glow}, 0 0 0px ${glow}; }
-      50%      { box-shadow: 0 0 18px ${accent}, 0 0 40px ${glow}; }
+      0%,100% { box-shadow: 0 0 2px ${glow}; }
+      50%      { box-shadow: 0 0 16px ${accent}, 0 0 36px ${glow}; }
     }
     @keyframes neonTextPulse {
-      0%,100% { text-shadow: 0 0 4px ${glow}; }
-      50%      { text-shadow: 0 0 14px ${accent}, 0 0 28px ${glow}; }
+      0%,100% { text-shadow: none; }
+      50%      { text-shadow: 0 0 12px ${accent}, 0 0 24px ${glow}; }
     }
-    @keyframes neonBorderPulse {
-      0%,100% { border-color: ${glow}; }
-      50%      { border-color: ${accent}; box-shadow: 0 0 12px ${glow}; }
+    @keyframes neonFillPulse {
+      0%,100% { box-shadow: none; }
+      50%      { box-shadow: 0 0 10px ${accent}; }
     }
   `;
+}
+
+// Liga/desliga pulsação conforme online/offline
+function _neonPulseUpdate() {
+  const root = document.documentElement;
+  if (navigator.onLine && _currentChar) {
+    _injectNeonKeyframe(_currentChar.accent, _currentChar.glow);
+    root.classList.add('neon-pulse');
+  } else {
+    root.classList.remove('neon-pulse');
+  }
 }
 
 function _charBuildMenu(selected) {
