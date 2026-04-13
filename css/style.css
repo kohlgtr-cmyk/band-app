@@ -35,10 +35,7 @@ html, body {
   transition: background 0.5s ease;
 }
 
-/* ── Pulsação neon (online) ───────────────────────────────────────────────────
-   JS adiciona .neon-pulse ao <html> quando online + personagem ativo.
-   Remove quando offline — sem pulso no modo fantasma.                        */
-
+/* ── Pulsação neon (online) — JS adiciona .neon-pulse ao <html> ─────────────*/
 :root.neon-pulse .logo-text {
   animation: neonTextPulse 3s ease-in-out infinite;
 }
@@ -51,8 +48,7 @@ html, body {
 :root.neon-pulse #pFill {
   animation: neonFillPulse 3s ease-in-out infinite;
 }
-
-/* Offline: garante que nada pulsa mesmo se .neon-pulse ainda existir */
+/* Offline: nada pulsa */
 body.offline-theme .logo-text,
 body.offline-theme .nav-btn.active,
 body.offline-theme #playBtn,
@@ -967,9 +963,17 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .p-artist { font-size: 10px; }
   .p-icon-btn { padding: 6px; }
   .p-icon-btn svg { width: 22px; height: 22px; }
-  .p-play-btn { width: 40px; height: 40px; }
-  .p-play-btn svg { width: 20px; height: 20px; }
+  /* Play/pause mobile: 10px maior que desktop, centralizado */
+  .p-play-btn { width: 52px; height: 52px; }
+  .p-play-btn svg { width: 24px; height: 24px; }
   .p-time { font-size: 10px; }
+
+  /* Centraliza a fila de controles (prev · play · next) */
+  .player-row-controls {
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
 
   .lyrics-panel,
   .about-panel { width: 100%; right: -100%; bottom: var(--ph); }
@@ -1055,17 +1059,19 @@ nav { display: flex; flex-direction: column; gap: 2px; }
 
 /* ===================== TEMA OFFLINE (FANTASMAGÓRICO) ===================== */
 body.offline-theme {
-  --bg:      #0a0f1a;
-  --bg2:     #0d1320;
-  --bg3:     #111827;
-  --bg4:     #1e293b;
-  --gold:    #00d4ff;
-  --gold2:   #5eead4;
+  --bg:       #0a0f1a;
+  --bg2:      #0d1320;
+  --bg3:      #111827;
+  --bg4:      #1e293b;
+  --gold:     #00d4ff;
+  --gold2:    #5eead4;
   --gold-dim: rgba(0, 212, 255, 0.15);
-  --t:       #e0f2f1;
-  --t2:      #94a3b8;
-  --t3:      #64748b;
-  --border:  rgba(0, 212, 255, 0.2);
+  --t:        #e0f2f1;
+  --t2:       #94a3b8;
+  --t3:       #64748b;
+  --border:   rgba(0, 212, 255, 0.2);
+  /* Sobrescreve o background inline injetado pelo JS do personagem */
+  background: #0a0f1a !important;
 }
 
 body.offline-theme .player {
@@ -1075,7 +1081,8 @@ body.offline-theme .player {
 }
 
 body.offline-theme .sidebar {
-  background: #050810;
+  /* Sobrescreve o background inline injetado pelo JS do personagem */
+  background: #050810 !important;
   border-right: 1px solid rgba(0, 212, 255, 0.2);
 }
 
@@ -1564,19 +1571,6 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 }
 
 /* ===================== TEMA OFFLINE - EQUALIZADOR ===================== */
-
-/* Fundo neutro fantasma — ignora a cor do personagem */
-body.offline-theme {
-  background: #0d1117 !important;
-}
-body.offline-theme .sidebar {
-  background: #080c10 !important;
-}
-body.offline-theme .main,
-body.offline-theme .content {
-  background: transparent;
-}
-
 body.offline-theme .eq-panel {
   background: linear-gradient(180deg, #0a0f1a 0%, #050810 100%);
   border-left: 1px solid rgba(0, 212, 255, 0.3);

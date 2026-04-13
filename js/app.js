@@ -170,6 +170,72 @@ const _CHARACTERS = [
     bg:'#080f16', bgSidebar:'#050a0f', bg2:'#0d1620', bg3:'#121e2b', bg4:'#172637' },
 ];
 
+// Personagem ativo — lido pela pulsação neon
+let _currentChar = null;
+
+function _charApplyTheme(char) {
+  const root    = document.documentElement;
+  const sidebar = document.getElementById('sidebar');
+
+  // Cores accent
+  root.style.setProperty('--gold',     char.accent);
+  root.style.setProperty('--gold2',    char.accent2);
+  root.style.setProperty('--gold-dim', char.glow);
+  root.style.setProperty('--border',   char.border);
+
+  // Fundos por personagem — só aplica se NÃO estiver offline
+  // (offline-theme tem !important no CSS que já sobrescreve, mas
+  //  inline style tem precedência maior, então checamos aqui)
+  if (!document.body.classList.contains('offline-theme')) {
+    root.style.setProperty('--bg',  char.bg);
+    root.style.setProperty('--bg2', char.bg2);
+    root.style.setProperty('--bg3', char.bg3);
+    root.style.setProperty('--bg4', char.bg4);
+    document.body.style.background = char.bg;
+    if (sidebar) sidebar.style.background = char.bgSidebar;
+  }
+
+  // Visualizer canvas
+  if (window.Visualizer) window.Visualizer.accentColor = char.accent;
+
+  // Pulsação neon
+  _currentChar = char;
+  _neonPulseUpdate();
+
+  try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
+}
+
+// Injeta @keyframes com a cor exata do personagem ativo
+function _injectNeonKeyframe(accent, glow) {
+  let el = document.getElementById('_neon-kf');
+  if (!el) { el = document.createElement('style'); el.id = '_neon-kf'; document.head.appendChild(el); }
+  el.textContent = `
+    @keyframes neonPulse {
+      0%,100% { box-shadow: 0 0 2px ${glow}; }
+      50%      { box-shadow: 0 0 16px ${accent}, 0 0 36px ${glow}; }
+    }
+    @keyframes neonTextPulse {
+      0%,100% { text-shadow: none; }
+      50%      { text-shadow: 0 0 12px ${accent}, 0 0 24px ${glow}; }
+    }
+    @keyframes neonFillPulse {
+      0%,100% { box-shadow: none; }
+      50%      { box-shadow: 0 0 10px ${accent}; }
+    }
+  `;
+}
+
+// Liga/desliga pulsação conforme online/offline
+function _neonPulseUpdate() {
+  const root = document.documentElement;
+  if (navigator.onLine && _currentChar) {
+    _injectNeonKeyframe(_currentChar.accent, _currentChar.glow);
+    root.classList.add('neon-pulse');
+  } else {
+    root.classList.remove('neon-pulse');
+  }
+}
+
 function _mountCharacterPicker() {
   const topbar = document.querySelector('.topbar');
   if (!topbar) return;
@@ -215,70 +281,17 @@ function _mountCharacterPicker() {
   });
 }
 
-// Personagem ativo — usado pela pulsação neon
-let _currentChar = null;
-
 function _charApplyTheme(char) {
   const root = document.documentElement;
-
-  // Cores accent
   root.style.setProperty('--gold',     char.accent);
   root.style.setProperty('--gold2',    char.accent2);
   root.style.setProperty('--gold-dim', char.glow);
   root.style.setProperty('--border',   char.border);
 
-  // Fundos dinâmicos por personagem
-  root.style.setProperty('--bg',  char.bg);
-  root.style.setProperty('--bg2', char.bg2);
-  root.style.setProperty('--bg3', char.bg3);
-  root.style.setProperty('--bg4', char.bg4);
-
-  // Sidebar usa cor mais escura
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.style.background = char.bgSidebar;
-
-  // Body background
-  document.body.style.background = char.bg;
-
-  // Visualizer canvas
+  // Passa a cor accent para o visualizer usar no canvas
   if (window.Visualizer) window.Visualizer.accentColor = char.accent;
 
-  // Pulsação neon
-  _currentChar = char;
-  _neonPulseUpdate();
-
   try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
-}
-
-// Injeta @keyframes com a cor exata do personagem ativo
-function _injectNeonKeyframe(accent, glow) {
-  let el = document.getElementById('_neon-kf');
-  if (!el) { el = document.createElement('style'); el.id = '_neon-kf'; document.head.appendChild(el); }
-  el.textContent = `
-    @keyframes neonPulse {
-      0%,100% { box-shadow: 0 0 2px ${glow}; }
-      50%      { box-shadow: 0 0 16px ${accent}, 0 0 36px ${glow}; }
-    }
-    @keyframes neonTextPulse {
-      0%,100% { text-shadow: none; }
-      50%      { text-shadow: 0 0 12px ${accent}, 0 0 24px ${glow}; }
-    }
-    @keyframes neonFillPulse {
-      0%,100% { box-shadow: none; }
-      50%      { box-shadow: 0 0 10px ${accent}; }
-    }
-  `;
-}
-
-// Liga/desliga pulsação conforme online/offline
-function _neonPulseUpdate() {
-  const root = document.documentElement;
-  if (navigator.onLine && _currentChar) {
-    _injectNeonKeyframe(_currentChar.accent, _currentChar.glow);
-    root.classList.add('neon-pulse');
-  } else {
-    root.classList.remove('neon-pulse');
-  }
 }
 
 function _charBuildMenu(selected) {
@@ -1009,6 +1022,29 @@ function offlineCheck() {
     document.body.classList.toggle('offline-theme', isOffline);
     const vizOverlay = document.getElementById('viz-overlay');
     if (vizOverlay) vizOverlay.classList.toggle('offline-theme', isOffline);
+
+    if (isOffline) {
+      // Remove inline styles do personagem para o CSS offline-theme !important funcionar
+      document.body.style.removeProperty('background');
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.style.removeProperty('background');
+      const root = document.documentElement;
+      root.style.removeProperty('--bg');
+      root.style.removeProperty('--bg2');
+      root.style.removeProperty('--bg3');
+      root.style.removeProperty('--bg4');
+    } else if (_currentChar) {
+      // Volta as cores do personagem ao ficar online
+      const root = document.documentElement;
+      root.style.setProperty('--bg',  _currentChar.bg);
+      root.style.setProperty('--bg2', _currentChar.bg2);
+      root.style.setProperty('--bg3', _currentChar.bg3);
+      root.style.setProperty('--bg4', _currentChar.bg4);
+      document.body.style.background = _currentChar.bg;
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.style.background = _currentChar.bgSidebar;
+    }
+
     if (badge) {
       badge.style.display = isOffline ? 'flex' : 'none';
       badge.innerHTML = isOffline ? `${GHOST_SVG}<span>OFFLINE — Modo Fantasma</span>` : '';
