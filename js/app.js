@@ -1036,8 +1036,11 @@ function offlineCheck() {
     if (vizOverlay) vizOverlay.classList.toggle('offline-theme', isOffline);
 
     if (isOffline) {
-      // Remove inline styles do personagem para o CSS offline-theme !important funcionar
+      // Remove todos os inline backgrounds para o CSS offline-theme tomar conta
+      document.documentElement.style.removeProperty('background');
       document.body.style.removeProperty('background');
+      const mainElOff = document.querySelector('.main');
+      if (mainElOff) mainElOff.style.removeProperty('background');
       const sidebar = document.getElementById('sidebar');
       if (sidebar) sidebar.style.removeProperty('background');
       const root = document.documentElement;
