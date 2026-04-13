@@ -234,6 +234,18 @@ function _injectNeonKeyframe(accent, glow) {
       0%,100% { box-shadow: none; }
       50%      { box-shadow: 0 0 10px ${accent}; }
     }
+    @keyframes neonBorderPulse {
+      0%,100% { border-left-color: ${accent}; }
+      50%      { border-left-color: ${accent}; box-shadow: -2px 0 8px ${accent}; }
+    }
+    @keyframes neonDividerPulse {
+      0%,100% { opacity: 0.7; }
+      50%      { opacity: 1; filter: drop-shadow(0 0 4px ${accent}); }
+    }
+    @keyframes neonDotPulse {
+      0%,100% { box-shadow: 0 0 4px ${accent}; }
+      50%      { box-shadow: 0 0 12px ${accent}, 0 0 20px ${glow}; }
+    }
   `;
 }
 
@@ -293,18 +305,7 @@ function _mountCharacterPicker() {
   });
 }
 
-function _charApplyTheme(char) {
-  const root = document.documentElement;
-  root.style.setProperty('--gold',     char.accent);
-  root.style.setProperty('--gold2',    char.accent2);
-  root.style.setProperty('--gold-dim', char.glow);
-  root.style.setProperty('--border',   char.border);
-
-  // Passa a cor accent para o visualizer usar no canvas
-  if (window.Visualizer) window.Visualizer.accentColor = char.accent;
-
-  try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
-}
+// _charApplyTheme — definida acima (versão completa com fundos)
 
 function _charBuildMenu(selected) {
   const menu = document.getElementById('charMenu');

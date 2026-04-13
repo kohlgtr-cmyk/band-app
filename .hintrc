@@ -13,7 +13,16 @@
     ],
     "no-inline-styles": "off",
     "manifest-file-extension": "off",
-    "apple-touch-icons": "off"
+    "apple-touch-icons": "off",
+    "compat-api/css": [
+      "default",
+      {
+        "ignore": [
+          "border-color: color-mix(in srgb, var(--gold) 30%, transparent)",
+          "border-color: color-mix(in srgb, var(--gold) 25%, transparent)"
+        ]
+      }
+    ]
   },
   "browserslist": [
     "defaults",

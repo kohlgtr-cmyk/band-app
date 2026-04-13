@@ -48,14 +48,88 @@ html, body {
 :root.neon-pulse #pFill {
   animation: neonFillPulse 3s ease-in-out infinite;
 }
+/* Elementos temáticos extras com neon pulsante online */
+:root.neon-pulse .p-artist {
+  animation: neonTextPulse 3.5s ease-in-out infinite;
+}
+:root.neon-pulse .section-label {
+  animation: neonTextPulse 4s ease-in-out infinite;
+}
+:root.neon-pulse .album-label {
+  animation: neonTextPulse 4s ease-in-out infinite;
+}
+:root.neon-pulse .song-row.playing .song-name {
+  animation: neonTextPulse 3s ease-in-out infinite;
+}
+:root.neon-pulse .song-row.playing .song-num {
+  animation: neonTextPulse 3s ease-in-out infinite;
+}
+:root.neon-pulse .lyrics-block__label {
+  animation: neonTextPulse 4s ease-in-out infinite;
+}
+:root.neon-pulse .sidebar-tagline {
+  animation: neonBorderPulse 4s ease-in-out infinite;
+}
+:root.neon-pulse .section-divider {
+  animation: neonDividerPulse 3.5s ease-in-out infinite;
+}
+:root.neon-pulse .view-title {
+  animation: neonTextPulse 5s ease-in-out infinite;
+}
+:root.neon-pulse .p-icon-btn.active {
+  animation: neonPulse 3s ease-in-out infinite;
+}
+:root.neon-pulse .char-btn-name {
+  animation: neonTextPulse 3.5s ease-in-out infinite;
+}
+:root.neon-pulse .p-bar-fill {
+  animation: neonFillPulse 3s ease-in-out infinite;
+}
+:root.neon-pulse .p-bar-thumb {
+  animation: neonDotPulse 2.4s ease-in-out infinite;
+}
+/* Floating mobile play button neon */
+:root.neon-pulse .floating-btn.play,
+:root.neon-pulse #floatingPlayBtn {
+  animation: neonPulse 2.4s ease-in-out infinite;
+}
+
 /* Offline: nada pulsa */
 body.offline-theme .logo-text,
 body.offline-theme .nav-btn.active,
 body.offline-theme #playBtn,
-body.offline-theme #pFill {
+body.offline-theme #pFill,
+body.offline-theme .p-artist,
+body.offline-theme .section-label,
+body.offline-theme .album-label,
+body.offline-theme .song-row.playing .song-name,
+body.offline-theme .song-row.playing .song-num,
+body.offline-theme .lyrics-block__label,
+body.offline-theme .sidebar-tagline,
+body.offline-theme .section-divider,
+body.offline-theme .view-title,
+body.offline-theme .p-icon-btn.active,
+body.offline-theme .char-btn-name,
+body.offline-theme .p-bar-fill,
+body.offline-theme .p-bar-thumb,
+body.offline-theme .floating-btn.play,
+body.offline-theme #floatingPlayBtn {
   animation: none !important;
   box-shadow: none !important;
   text-shadow: none !important;
+}
+
+@keyframes neonBorderPulse {
+  0%, 100% { border-left-color: var(--gold); }
+  50%       { border-left-color: var(--gold2); box-shadow: -2px 0 8px var(--gold); }
+}
+@keyframes neonDividerPulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; filter: drop-shadow(0 0 4px var(--gold)); }
+}
+@keyframes neonDotPulse {
+  0%, 100% { box-shadow: 0 0 4px var(--gold); }
+  50%       { box-shadow: 0 0 12px var(--gold), 0 0 20px var(--gold); }
 }
 
 /* ===================== LAYOUT ===================== */
@@ -963,21 +1037,31 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .p-icon-btn { padding: 6px; }
   .p-icon-btn svg { width: 22px; height: 22px; }
 
-  /* Play/pause mobile: ~10px maior que desktop (42px → 52px) */
-  .p-play-btn { width: 52px; height: 52px; }
-  .p-play-btn svg { width: 24px; height: 24px; }
+  /* Play/pause mobile: maior e bem destacado */
+  .p-play-btn { width: 56px; height: 56px; }
+  .p-play-btn svg { width: 26px; height: 26px; }
   .p-time { font-size: 10px; }
 
-  /* Centraliza a fila de controles (prev · play · next) */
+  /* Controles mobile — prev · play · next no centro; shuffle/repeat/etc escondidos */
   .player-row-controls {
     flex: 0 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 20px;
+    gap: 0;
     width: 100%;
     padding-top: 2px;
   }
+
+  /* Esconde controles secundários no mobile, mantém só prev/play/next */
+  .player-row-controls #shuffleBtn,
+  .player-row-controls #repeatBtn,
+  .player-row-controls #sleepBtn,
+  .player-row-controls #eqBtn { display: none; }
+
+  /* Espaçamento generoso só para os 3 controles centrais */
+  .player-row-controls .p-icon-btn { padding: 10px 22px; }
+  .player-row-controls .p-play-btn { margin: 0 10px; }
 
   .lyrics-panel,
   .about-panel { width: 100%; right: -100%; bottom: var(--ph); }
