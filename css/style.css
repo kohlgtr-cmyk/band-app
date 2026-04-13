@@ -932,8 +932,8 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   cursor: grab; position: relative;
   transition: height .15s;
   touch-action: none;
-  user-select: none;
   -webkit-user-select: none;
+  user-select: none;
 }
 .p-bar:hover { height: 5px; }
 .p-bar.is-scrubbing {
@@ -1669,6 +1669,7 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 .eq-master-slider {
   flex: 1;
   -webkit-appearance: none;
+  appearance: none;
   height: 4px;
   background: var(--bg4);
   border-radius: 2px;
@@ -1677,6 +1678,7 @@ body.offline-theme .p-icon-btn#eqBtn.active {
 
 .eq-master-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 14px;
   height: 14px;
   background: var(--gold);
