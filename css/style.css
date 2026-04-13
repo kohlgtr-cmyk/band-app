@@ -32,6 +32,40 @@ html, body {
   color: var(--t);
   font-family: 'Inter', system-ui, sans-serif;
   overflow: hidden;
+  transition: background 0.6s ease;
+}
+
+/* ── Pulsação neon — aplicada pelo JS quando online ────────────────────────── */
+/* O JS injeta a keyframe "neonPulse" com a cor certa e adiciona .neon-pulse ao :root */
+
+/* Logo pulsa online */
+:root.neon-pulse .logo-text {
+  animation: neonTextPulse 2.8s ease-in-out infinite;
+}
+
+/* Botão ativo na nav pulsa online */
+:root.neon-pulse .nav-btn.active {
+  animation: neonPulse 2.8s ease-in-out infinite;
+}
+
+/* Barra de progresso pulsa online */
+:root.neon-pulse #pFill {
+  animation: neonBorderPulse 2.8s ease-in-out infinite;
+}
+
+/* Botão play principal pulsa online */
+:root.neon-pulse #playBtn {
+  animation: neonPulse 2.2s ease-in-out infinite;
+}
+
+/* Offline: remove tudo — sem pulso, sem brilho extra */
+body.offline-theme .logo-text,
+body.offline-theme .nav-btn.active,
+body.offline-theme #pFill,
+body.offline-theme #playBtn {
+  animation: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 /* ===================== LAYOUT ===================== */
@@ -50,6 +84,7 @@ body { display: flex; flex-direction: row; }
   z-index: 10;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
+  transition: background 0.6s ease, border-color 0.4s ease;
 }
 
 .main {

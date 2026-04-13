@@ -3,6 +3,18 @@
    Importar no index.html ANTES do style.css principal
 */
 
+/* ── Fundo dinâmico controlado pelo JS via --bg, --bg2, --bg3 ── */
+/* O JS seta essas variáveis no :root quando troca de personagem   */
+/* O sidebar usa uma variável extra --bg-sidebar para ficar mais escuro */
+:root {
+  --bg-sidebar: #080c10; /* sobrescrito pelo JS com bgDeep de cada char */
+}
+
+/* Sobrescreve o background fixo do sidebar com a variável dinâmica */
+.sidebar {
+  background: var(--bg-sidebar, #080c10) !important;
+}
+
 /* Wrapper — vai para a direita na topbar */
 .char-picker {
   position: relative;
