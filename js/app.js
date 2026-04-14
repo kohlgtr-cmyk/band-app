@@ -6,7 +6,7 @@ let queue               = [];
 let queueIndex          = 0;
 let playing             = false;
 let shuffle             = false;
-let repeat              = false;
+let repeat              = 'off'; // 'off' | 'all' | 'album'
 let currentAlbumId      = null;
 let lyricsOpen          = false;
 let aboutPanelOpen      = false;
@@ -545,6 +545,7 @@ function songRowHTML(song, num, opts) {
   opts = opts || {};
   const showPlayCount = !!opts.showPlayCount;
   const musicsPage    = !!opts.musicsPage;
+  const homeQueue     = opts.homeQueue || null;
   const album      = albums.find(a => a.id === song.albumId);
   const isPlaying  = currentTrack && currentTrack.id === song.id;
   const isDownloaded = isSongDownloaded(song.id);
@@ -576,8 +577,14 @@ function songRowHTML(song, num, opts) {
     : (song.duration || '');
 
   const rowExtra = musicsPage ? ' song-row--musics' : '';
+
+  // Se vier da home (lista de mais ouvidas), passa os IDs da queue serializada
+  const onclickCall = homeQueue
+    ? 'playFromHomeQueue(' + song.id + ',[' + homeQueue.map(s => s.id).join(',') + '])'
+    : 'playSong(' + song.id + ')';
+
   return (
-    '<div class="song-row' + (isPlaying ? ' playing' : '') + (showPlayCount ? ' song-row--plays' : '') + rowExtra + '" onclick="playSong(' + song.id + ')">' +
+    '<div class="song-row' + (isPlaying ? ' playing' : '') + (showPlayCount ? ' song-row--plays' : '') + rowExtra + '" onclick="' + onclickCall + '">' +
       '<div class="song-num">' + (isPlaying ? '▶' : num) + '</div>' +
       '<div class="song-thumb">' + thumb + '</div>' +
       '<div class="song-info">' +
@@ -602,7 +609,10 @@ function renderHomeAlbums() {
 }
 function renderHomeSongs() {
   const el = document.getElementById('homeSongs');
-  if (el) el.innerHTML = getHomeSongList().map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true })).join('');
+  if (!el) return;
+  const list = getHomeSongList();
+  // Renderiza com onclick que passa a queue da home
+  el.innerHTML = list.map((s, i) => songRowHTML(s, i + 1, { showPlayCount: true, homeQueue: list })).join('');
 }
 function renderAllAlbumsGrid() {
   const el = document.getElementById('allAlbums');
@@ -740,6 +750,12 @@ function playAll() {
   if (s.length) playSong(s[0].id, s);
 }
 
+/** Toca uma música a partir da lista de mais ouvidas, usando somente aquela queue */
+function playFromHomeQueue(songId, queueIds) {
+  const q = queueIds.map(id => songs.find(s => s.id === id)).filter(Boolean);
+  playSong(songId, q.length ? q : undefined);
+}
+
 function togglePlay() {
   if (!currentTrack) return;
   if (playing) { audio.pause(); }
@@ -765,13 +781,41 @@ function nextTrack() {
 function toggleShuffle() {
   shuffle = !shuffle;
   const btn = document.getElementById('shuffleBtn');
-  if (btn) { btn.classList.toggle('active', shuffle); btn.setAttribute('aria-pressed', String(shuffle)); }
+  if (btn) {
+    if (shuffle) btn.classList.add('active'); else btn.classList.remove('active');
+    btn.setAttribute('aria-pressed', String(shuffle));
+  }
 }
 
 function toggleRepeat() {
-  repeat = !repeat;
-  const btn = document.getElementById('repeatBtn');
-  if (btn) { btn.classList.toggle('active', repeat); btn.setAttribute('aria-pressed', String(repeat)); }
+  // Cicla: off → all → album → off
+  if (repeat === 'off')   repeat = 'all';
+  else if (repeat === 'all')  repeat = 'album';
+  else repeat = 'off';
+  _updateRepeatBtn();
+}
+
+function _updateRepeatBtn() {
+  const btn  = document.getElementById('repeatBtn');
+  const icon = document.getElementById('repeatIcon');
+  if (!btn) return;
+
+  btn.classList.toggle('active', repeat !== 'off');
+  btn.setAttribute('aria-pressed', repeat !== 'off' ? 'true' : 'false');
+
+  const labels = { off: 'Repetir desativado', all: 'Repetindo todas', album: 'Repetindo álbum' };
+  btn.setAttribute('aria-label', labels[repeat]);
+  btn.title = labels[repeat];
+
+  if (!icon) return;
+  if (repeat === 'album') {
+    // Ícone repeat-one (loop com "1")
+    icon.innerHTML = `<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+      <text x="12" y="14.5" text-anchor="middle" font-size="6" font-family="sans-serif" fill="currentColor" font-weight="bold">1</text>`;
+  } else {
+    // Ícone repeat padrão
+    icon.innerHTML = `<path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>`;
+  }
 }
 
 // ── UI ────────────────────────────────────────────────────────────────────────
@@ -833,7 +877,21 @@ function audioEvents() {
   audio.addEventListener('loadedmetadata', () => {
     document.getElementById('pTotal').textContent = fmt(audio.duration);
   });
-  audio.addEventListener('ended', () => { if (repeat) audio.play(); else nextTrack(); });
+  audio.addEventListener('ended', () => {
+    if (repeat === 'album') {
+      // Repetir somente o álbum da música atual
+      const albumSongs = songs.filter(s => s.albumId === currentTrack?.albumId);
+      const idx = albumSongs.findIndex(s => s.id === currentTrack?.id);
+      if (albumSongs.length) {
+        const next = albumSongs[(idx + 1) % albumSongs.length];
+        playSong(next.id, albumSongs);
+      } else { audio.play(); }
+    } else if (repeat === 'all') {
+      nextTrack();
+    } else {
+      nextTrack();
+    }
+  });
   audio.addEventListener('play', () => {
     playing = true;
     updatePlayIcon();
@@ -1295,6 +1353,7 @@ function toggleVisualizer() {
 }
 
 // ── GLOBALS (chamados via onclick no HTML) ────────────────────────────────────
+window.playFromHomeQueue    = playFromHomeQueue;
 window.showView             = showView;
 window.openAlbum            = openAlbum;
 window.playSong             = playSong;

@@ -185,27 +185,36 @@
 
     <!-- Linha 3: controles -->
     <div class="player-row player-row-controls">
-      <button type="button" class="p-icon-btn" onclick="toggleShuffle()" id="shuffleBtn" aria-label="Modo aleatório" aria-pressed="false">
-        <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="prevTrack()" aria-label="Faixa anterior">
-        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-      </button>
-      <button type="button" class="p-play-btn" onclick="togglePlay()" id="playBtn" aria-label="Reproduzir ou pausar">
-        <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="nextTrack()" aria-label="Próxima faixa">
-        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="toggleRepeat()" id="repeatBtn" aria-label="Repetir faixa" aria-pressed="false">
-        <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer" title="Timer (30min)">
-        <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-      </button>
-      <button type="button" class="p-icon-btn" onclick="toggleEqPanel()" id="eqBtn" aria-label="Equalizador" title="Abrir Equalizador">
-        <svg viewBox="0 0 24 24"><path d="M3 17h2v-2H3v2zm0-10v6h2V7H3zm4 12h2v-6H7v6zm0-8h2V7H7v2zm4 8h2v-4h-2v4zm0-6h2V7h-2v2zm4 6h2v-8h-2v8zm0-10v4h2V3h-2z"/></svg>
-      </button>
+      <!-- Lado esquerdo: shuffle -->
+      <div class="player-controls-left">
+        <button type="button" class="p-icon-btn" onclick="toggleShuffle()" id="shuffleBtn" aria-label="Modo aleatório" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+        </button>
+      </div>
+      <!-- Centro: prev / play / next -->
+      <div class="player-controls-center">
+        <button type="button" class="p-icon-btn" onclick="prevTrack()" aria-label="Faixa anterior">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button type="button" class="p-play-btn" onclick="togglePlay()" id="playBtn" aria-label="Reproduzir ou pausar">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button type="button" class="p-icon-btn" onclick="nextTrack()" aria-label="Próxima faixa">
+          <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+      <!-- Lado direito: repeat + timer + eq -->
+      <div class="player-controls-right">
+        <button type="button" class="p-icon-btn" onclick="toggleRepeat()" id="repeatBtn" aria-label="Repetir" aria-pressed="false" title="Repetir">
+          <svg viewBox="0 0 24 24" id="repeatIcon"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+        </button>
+        <button type="button" class="p-icon-btn" onclick="toggleSleepTimer()" id="sleepBtn" aria-label="Timer" title="Timer (30min)">
+          <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        </button>
+        <button type="button" class="p-icon-btn" onclick="toggleEqPanel()" id="eqBtn" aria-label="Equalizador" title="Abrir Equalizador">
+          <svg viewBox="0 0 24 24"><path d="M3 17h2v-2H3v2zm0-10v6h2V7H3zm4 12h2v-6H7v6zm0-8h2V7H7v2zm4 8h2v-4h-2v4zm0-6h2V7h-2v2zm4 6h2v-8h-2v8zm0-10v4h2V3h-2z"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Volume -->

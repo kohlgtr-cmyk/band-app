@@ -1042,73 +1042,62 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   .p-play-btn svg { width: 26px; height: 26px; }
   .p-time { font-size: 10px; }
 
-  /* Controles mobile — layout de 5 zonas: [sec] [prev] [PLAY] [next] [sec]  */
+  /* Controles mobile — 3 zonas fixas: [lado-esq] [centro] [lado-dir]
+     lado-esq e lado-dir têm mesma largura → trio central fica sempre centrado */
   .player-row-controls {
     flex: 0 0 auto;
-    display: grid;
-    grid-template-columns: 1fr auto auto auto 1fr;
-    align-items: center;
-    width: 100%;
-    padding-top: 2px;
-  }
-
-  /* Botões secundários: menores, opacos e nas pontas */
-  .player-row-controls #shuffleBtn { grid-column: 1; justify-self: start; }
-  .player-row-controls #repeatBtn  { grid-column: 1; justify-self: end;   }
-  .player-row-controls #sleepBtn   { grid-column: 5; justify-self: start; }
-  .player-row-controls #eqBtn      { grid-column: 5; justify-self: end;   }
-
-  /* Agrupamento dos secundários nas pontas via sub-flex */
-  .player-row-controls #shuffleBtn,
-  .player-row-controls #repeatBtn {
-    grid-column: unset;
-  }
-  /* Revert: usar flex simples com justify-content para distribuir */
-  .player-row-controls {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     width: 100%;
     padding-top: 2px;
-    gap: 0;
   }
 
-  /* Trio central recebe margens automáticas para ficar verdadeiramente no meio */
-  .player-row-controls > button:nth-child(2),  /* prev */
-  .player-row-controls > button:nth-child(3),  /* play */
-  .player-row-controls > button:nth-child(4) { /* next */
+  /* Grupo esquerdo: shuffle */
+  .player-controls-left {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    justify-content: flex-start;
+  }
+
+  /* Trio central: prev / play / next */
+  .player-controls-center {
+    display: flex;
+    align-items: center;
+    gap: 0;
     flex-shrink: 0;
   }
-  .player-row-controls > button:nth-child(2) { margin-left: auto; }
-  .player-row-controls > button:nth-child(4) { margin-right: auto; }
+
+  /* Grupo direito: repeat + timer + eq — mesma largura que o esquerdo */
+  .player-controls-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    justify-content: flex-end;
+  }
 
   /* Prev e Next: padding generoso para toque */
-  .player-row-controls > button:nth-child(2),
-  .player-row-controls > button:nth-child(4) {
-    padding: 8px 16px;
+  .player-controls-center .p-icon-btn {
+    padding: 8px 14px;
   }
 
   /* Play central */
-  .player-row-controls .p-play-btn { margin: 0 4px; }
+  .player-controls-center .p-play-btn { margin: 0 2px; }
 
   /* Botões secundários: ícone menor, mais discretos */
-  .player-row-controls #shuffleBtn svg,
-  .player-row-controls #repeatBtn  svg,
-  .player-row-controls #sleepBtn   svg,
-  .player-row-controls #eqBtn      svg {
+  .player-controls-left .p-icon-btn svg,
+  .player-controls-right .p-icon-btn svg {
     width: 17px; height: 17px;
   }
-  .player-row-controls #shuffleBtn,
-  .player-row-controls #repeatBtn,
-  .player-row-controls #sleepBtn,
-  .player-row-controls #eqBtn {
-    padding: 8px 4px;
+  .player-controls-left .p-icon-btn,
+  .player-controls-right .p-icon-btn {
+    padding: 8px 5px;
     opacity: 0.65;
   }
-  .player-row-controls #shuffleBtn.active,
-  .player-row-controls #repeatBtn.active,
-  .player-row-controls #sleepBtn.active,
-  .player-row-controls #eqBtn.active {
+  .player-controls-left .p-icon-btn.active,
+  .player-controls-right .p-icon-btn.active {
     opacity: 1;
   }
 
