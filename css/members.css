@@ -1,0 +1,286 @@
+/* ===================== MEMBERS PAGE ===================== */
+/* css/members.css — Página e painel lateral de membros */
+
+/* ── Grade de membros ── */
+.members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  padding: 8px 0 24px;
+}
+
+/* ── Card de membro (clicável) ── */
+.member-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s, border-color .3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 12px 16px;
+  gap: 10px;
+  position: relative;
+}
+.member-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px var(--gold-dim);
+  border-color: var(--gold);
+}
+.member-card:active { transform: translateY(-1px); }
+
+/* Foto / avatar do membro */
+.member-card__photo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .3s;
+}
+.member-card:hover .member-card__photo { border-color: var(--gold); }
+.member-card__photo img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.member-card__photo-placeholder {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.member-card__name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1.15;
+}
+.member-card__role {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: var(--t3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* instrumento no canto inferior direito */
+.member-card__instrument-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  opacity: 0.45;
+  transition: opacity .2s;
+}
+.member-card:hover .member-card__instrument-badge { opacity: 0.8; }
+
+/* ── Painel lateral de membro ── */
+.member-panel {
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 380px;
+  max-width: 100vw;
+  height: 100%;
+  height: 100dvh;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  transition: right .3s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+.member-panel.open { right: 0; }
+
+/* Header do painel */
+.member-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+.member-panel__header button {
+  background: none;
+  border: none;
+  color: var(--t2);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color .15s;
+  flex-shrink: 0;
+}
+.member-panel__header button:hover { color: var(--t); }
+
+/* Hero: foto grande + nome + papel */
+.member-panel__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+.member-panel__photo {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 24px var(--gold-dim);
+  background: var(--bg3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.member-panel__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.member-panel__photo-placeholder { font-size: 44px; line-height: 1; }
+
+.member-panel__name {
+  font-family: 'Oswald', sans-serif;
+  font-size: 26px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-align: center;
+  line-height: 1;
+}
+.member-panel__role {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--t3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* Instrumento destacado */
+.member-panel__instrument {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  margin-top: 2px;
+}
+.member-panel__instrument-icon { opacity: 0.85; display: flex; align-items: center; }
+.member-panel__instrument-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--t2);
+  letter-spacing: 1px;
+}
+
+/* Scroll do conteúdo */
+.member-panel__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.member-panel__scroll::-webkit-scrollbar { width: 4px; }
+.member-panel__scroll::-webkit-scrollbar-track { background: transparent; }
+.member-panel__scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Divisor com label */
+.member-panel__section-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+/* Lore / história */
+.member-panel__lore {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--t2);
+  white-space: pre-line;
+}
+
+/* Lista de curiosidades */
+.member-panel__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.member-panel__fact {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.member-panel__fact-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  margin-top: 6px;
+  box-shadow: 0 0 6px var(--gold);
+}
+.member-panel__fact-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .members-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .member-card { padding: 16px 10px 14px; }
+  .member-card__photo { width: 72px; height: 72px; }
+  .member-card__name { font-size: 13px; }
+
+  .member-panel {
+    width: 100%;
+    top: auto;
+    bottom: -100%;
+    right: 0;
+    height: 88%;
+    height: 88dvh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    transition: bottom .3s cubic-bezier(.4,0,.2,1);
+  }
+  .member-panel.open { bottom: 0; right: 0; }
+
+  /* arraste visual no mobile */
+  .member-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+}

@@ -16,6 +16,7 @@ let sleepTimer          = null;
 let wakeLock            = null;
 let userInteracted      = false;
 let eqPanelOpen         = false;
+let memberPanelOpen     = false;
 
 const PREV_AT_START_SEC = 2;
 
@@ -56,6 +57,7 @@ function init() {
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
       if (galleryLightboxOpen) closeGalleryLightbox();
+      else if (memberPanelOpen)  closeMemberPanel();
       else if (aboutPanelOpen) closeAboutPanel();
       else if (lyricsOpen)     closeLyrics();
       else if (eqPanelOpen)    toggleEqPanel();
@@ -688,6 +690,7 @@ function showView(name, btn) {
   }
   if (name === 'home')    renderHomeSongs();
   if (name === 'gallery') renderGallery();
+  if (name === 'members') renderMembersGrid();
   closeSidebar();
 }
 
@@ -1352,7 +1355,82 @@ function toggleVisualizer() {
   if (btn) btn.classList.toggle('active', isOpen);
 }
 
+// ── MEMBROS ───────────────────────────────────────────────────────────────────
+
+// ── MEMBROS ───────────────────────────────────────────────────────────────────
+// Os dados dos membros ficam em js/members.js — edite lá.
+
+function renderMembersGrid() {
+  const el = document.getElementById('membersGrid');
+  if (!el) return;
+
+  el.innerHTML = BAND_MEMBERS.map(m => {
+    const photoHTML = m.photo
+      ? `<img src="${m.photo}" alt="${m.name}" loading="lazy" />`
+      : `<span class="member-card__photo-placeholder">${m.photoEmoji}</span>`;
+
+    // Ícone do instrumento via _INSTRUMENT_ICONS (já definido no app.js)
+    const iconHTML = _INSTRUMENT_ICONS[m.id]
+      ? _INSTRUMENT_ICONS[m.id]('var(--gold)', 18)
+      : '';
+
+    return `
+      <button type="button" class="member-card" onclick="openMemberPanel('${m.id}')" aria-label="Ver perfil de ${m.name}">
+        <div class="member-card__photo">${photoHTML}</div>
+        <div class="member-card__name">${m.name}</div>
+        <div class="member-card__role">${m.role}</div>
+        <div class="member-card__instrument-badge">${iconHTML}</div>
+      </button>`;
+  }).join('');
+}
+
+function openMemberPanel(memberId) {
+  const m = BAND_MEMBERS.find(x => x.id === memberId);
+  if (!m) return;
+
+  // Foto
+  const photoEl = document.getElementById('memberPanelPhoto');
+  photoEl.innerHTML = m.photo
+    ? `<img src="${m.photo}" alt="${m.name}" />`
+    : `<span class="member-panel__photo-placeholder">${m.photoEmoji}</span>`;
+
+  document.getElementById('memberPanelName').textContent = m.name;
+  document.getElementById('memberPanelRole').textContent = m.role;
+  document.getElementById('memberPanelInstrName').textContent = m.instrument;
+
+  // Ícone do instrumento
+  const instrIconEl = document.getElementById('memberPanelInstrIcon');
+  instrIconEl.innerHTML = _INSTRUMENT_ICONS[m.id]
+    ? _INSTRUMENT_ICONS[m.id]('var(--gold)', 16)
+    : '';
+
+  document.getElementById('memberPanelLore').textContent = m.lore;
+
+  // Curiosidades
+  const factsEl = document.getElementById('memberPanelFacts');
+  factsEl.innerHTML = m.facts.map(f => `
+    <div class="member-panel__fact">
+      <div class="member-panel__fact-dot"></div>
+      <span class="member-panel__fact-text">${f}</span>
+    </div>`).join('');
+
+  const panel = document.getElementById('memberPanel');
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  memberPanelOpen = true;
+}
+
+function closeMemberPanel() {
+  const panel = document.getElementById('memberPanel');
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  memberPanelOpen = false;
+}
+
 // ── GLOBALS (chamados via onclick no HTML) ────────────────────────────────────
+window.openMemberPanel      = openMemberPanel;
+window.closeMemberPanel     = closeMemberPanel;
 window.playFromHomeQueue    = playFromHomeQueue;
 window.showView             = showView;
 window.openAlbum            = openAlbum;

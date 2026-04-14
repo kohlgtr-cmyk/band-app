@@ -12,6 +12,7 @@
 
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/character-theme.css" />
+  <link rel="stylesheet" href="css/members.css" />
   <link rel="stylesheet" href="css/style.css?v=51" />
 </head>
 <body>
@@ -33,6 +34,9 @@
       </button>
       <button type="button" class="nav-btn" onclick="showView('gallery', this)">
         <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>Galeria
+      </button>
+      <button type="button" class="nav-btn" onclick="showView('members', this)">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Membros
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -123,6 +127,15 @@
         <div class="gallery-grid" id="galleryGrid"></div>
       </div>
 
+      <!-- MEMBROS -->
+      <div class="view" id="view-members">
+        <p class="section-label">// A Banda</p>
+        <h1 class="view-title">Membros</h1>
+        <p class="view-subtitle">As pessoas por trás do som.</p>
+        <div class="section-divider"></div>
+        <div class="members-grid" id="membersGrid"></div>
+      </div>
+
     </div>
   </main>
 
@@ -152,6 +165,33 @@
     <div class="lyrics-scroll">
       <p class="lyrics-block__hint about-panel__hint">Inspiração, contexto e bastidores da faixa.</p>
       <div id="aboutPanelBody" class="lyrics-block__text lyrics-block__text--about"></div>
+    </div>
+  </div>
+
+  <!-- PAINEL: membro -->
+  <div class="member-panel" id="memberPanel" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Detalhes do membro">
+    <div class="member-panel__header">
+      <div></div>
+      <button type="button" onclick="closeMemberPanel()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="member-panel__hero">
+      <div class="member-panel__photo" id="memberPanelPhoto"></div>
+      <div class="member-panel__name"  id="memberPanelName">—</div>
+      <div class="member-panel__role"  id="memberPanelRole">—</div>
+      <div class="member-panel__instrument" id="memberPanelInstrument">
+        <span class="member-panel__instrument-icon" id="memberPanelInstrIcon"></span>
+        <span class="member-panel__instrument-name" id="memberPanelInstrName">—</span>
+      </div>
+    </div>
+    <div class="member-panel__scroll">
+      <div>
+        <p class="member-panel__section-label">// História</p>
+        <p class="member-panel__lore" id="memberPanelLore"></p>
+      </div>
+      <div>
+        <p class="member-panel__section-label">// Curiosidades</p>
+        <div class="member-panel__facts" id="memberPanelFacts"></div>
+      </div>
     </div>
   </div>
 
@@ -320,7 +360,9 @@
   <script src="js/data.js?v=51"></script>
   <!-- 2. Galeria (galleryPhotos) -->
   <script src="js/gallery.js?v=51"></script>
-  <!-- 3. Visualizador (window.Visualizer) -->
+  <!-- 3. Membros da banda (BAND_MEMBERS) -->
+  <script src="js/members.js?v=51"></script>
+  <!-- 4. Visualizador (window.Visualizer) -->
   <script src="js/modules/visualizer.js?v=51"></script>
   <!-- 4. App principal — NÃO usa type="module" para ter acesso ao window global -->
   <script src="js/app.js?v=51"></script>
