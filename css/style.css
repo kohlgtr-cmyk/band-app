@@ -871,6 +871,14 @@ nav { display: flex; flex-direction: column; gap: 2px; }
   display: flex; align-items: center; gap: 6px;
   flex: 1; justify-content: center;
 }
+
+/* Desktop: os wrappers left/center/right são transparentes —
+   seus filhos entram direto no flex do player-row-controls */
+.player-controls-left,
+.player-controls-center,
+.player-controls-right {
+  display: contents;
+}
 .player-row-progress {
   display: flex; align-items: center; gap: 10px;
   flex: 1; min-width: 0;
