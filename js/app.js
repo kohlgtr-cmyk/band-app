@@ -636,20 +636,26 @@ function renderGallery() {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       const img = entry.target;
-      img.src = img.dataset.src;
+      if (img.dataset.src) {
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+      }
       img.classList.add('loaded');
       obs.unobserve(img);
     });
-  }, { rootMargin: '50px' });
+  }, { rootMargin: '200px' });
 
   root.innerHTML = list.map((item, i) => {
     const src = escapeHtml(item.src);
     const alt = escapeHtml(item.alt || item.caption || 'Foto da galeria');
     const cap = item.caption ? `<span class="gallery-item__caption">${escapeHtml(item.caption)}</span>` : '';
-    return `<button type="button" class="gallery-item" onclick="openGalleryLightbox(${i})" aria-label="${alt}"><span class="gallery-item__frame"><img data-src="${src}" alt="${alt}" loading="lazy" decoding="async" class="lazy-img"/></span>${cap}</button>`;
+    return `<button type="button" class="gallery-item" onclick="openGalleryLightbox(${i})" aria-label="${alt}"><span class="gallery-item__frame"><img data-src="${src}" alt="${alt}" decoding="async" class="lazy-img"/></span>${cap}</button>`;
   }).join('');
 
-  root.querySelectorAll('.lazy-img').forEach(img => observer.observe(img));
+  // Pequeno delay para garantir que o DOM foi pintado antes de observar (importante no mobile)
+  requestAnimationFrame(() => {
+    root.querySelectorAll('.lazy-img').forEach(img => observer.observe(img));
+  });
 }
 
 function openGalleryLightbox(index) {
@@ -1365,8 +1371,9 @@ function renderMembersGrid() {
   if (!el) return;
 
   el.innerHTML = BAND_MEMBERS.map(m => {
+    const focusStyle = m.photoFocus ? ` style="object-position:${m.photoFocus}"` : '';
     const photoHTML = m.photo
-      ? `<img src="${m.photo}" alt="${m.name}" loading="lazy" />`
+      ? `<img src="${m.photo}" alt="${m.name}" loading="lazy"${focusStyle} />`
       : `<span class="member-card__photo-placeholder">${m.photoEmoji}</span>`;
 
     // Ícone do instrumento via _INSTRUMENT_ICONS (já definido no app.js)
@@ -1390,8 +1397,9 @@ function openMemberPanel(memberId) {
 
   // Foto
   const photoEl = document.getElementById('memberPanelPhoto');
+  const focusStyle = m.photoFocus ? ` style="object-position:${m.photoFocus}"` : '';
   photoEl.innerHTML = m.photo
-    ? `<img src="${m.photo}" alt="${m.name}" />`
+    ? `<img src="${m.photo}" alt="${m.name}"${focusStyle} />`
     : `<span class="member-panel__photo-placeholder">${m.photoEmoji}</span>`;
 
   document.getElementById('memberPanelName').textContent = m.name;
