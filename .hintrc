@@ -25,7 +25,8 @@
           "border-left: 1px solid color-mix(in srgb, var(--gold) 30%, transparent)",
           "border-color: color-mix(in srgb, var(--gold) 40%, transparent)",
           "border-right: 1px solid color-mix(in srgb, var(--gold) 20%, transparent)",
-          "border-top: 1px solid color-mix(in srgb, var(--gold) 30%, transparent)"
+          "border-top: 1px solid color-mix(in srgb, var(--gold) 30%, transparent)",
+          "user-select"
         ]
       }
     ]

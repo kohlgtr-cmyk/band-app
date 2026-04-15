@@ -1,0 +1,458 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   character-design-system.css — EchoDome
+   CSS companion para o character-design-system.js
+   Importar no index.html APÓS character-theme.css e ANTES de style.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variáveis extras registradas pelo JS ────────────────────────────────── */
+:root {
+  --char-font-display:    'Oswald', sans-serif;   /* sobrescrito pelo JS */
+  --char-font-body:       'Inter', sans-serif;    /* sobrescrito pelo JS */
+  --char-letter-spacing:  0.05em;
+  --char-line-height:     1.7;
+  --char-radius:          4px;
+  --char-radius-card:     8px;
+  --char-radius-btn:      6px;
+  --char-glow-intensity:  0.5;
+  --char-backdrop:        none;
+}
+
+/* ── Transições globais suaves na troca de tema ─────────────────────────── */
+/* Aplicado em todos os elementos que mudam visualmente */
+.logo-text,
+.view-title,
+.section-label,
+.album-title,
+.song-name,
+.p-title,
+.p-artist,
+.song-artist,
+.album-artist,
+.member-card__name,
+.member-card__role,
+.member-panel__name,
+.member-panel__role,
+.member-panel__lore,
+.member-panel__fact-text,
+.lyrics-block__text,
+.nav-btn span,
+.char-btn-name {
+  transition:
+    font-family     0.4s ease,
+    letter-spacing  0.35s ease,
+    line-height     0.35s ease,
+    color           0.4s ease;
+}
+
+.song-row,
+.album-card,
+.member-card,
+.player,
+.sidebar,
+.char-dropdown-btn {
+  transition:
+    border-radius   0.4s ease,
+    border-color    0.3s ease,
+    background      0.5s ease,
+    box-shadow      0.4s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEMAS POR PERSONAGEM
+   Cada .theme-* é uma classe aplicada ao <body> pelo CharDesign.apply()
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── TRACE — Silêncio Monospace ──────────────────────────────────────────── */
+body.theme-trace .logo-text {
+  font-family: 'Space Mono', monospace !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+body.theme-trace .view-title {
+  font-family: 'Space Mono', monospace !important;
+  font-size: clamp(18px, 3vw, 26px) !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase;
+}
+
+body.theme-trace .section-label {
+  font-family: 'DM Mono', monospace !important;
+  letter-spacing: 0.2em !important;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+body.theme-trace .song-name {
+  font-family: 'Space Mono', monospace !important;
+  letter-spacing: 0.04em !important;
+}
+
+body.theme-trace .album-card {
+  border: 1px solid var(--border) !important;
+  border-radius: 2px !important;
+}
+
+body.theme-trace .album-card:hover {
+  border-color: var(--gold) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Sidebar de Trace: mais limpa, bordas simplificadas */
+body.theme-trace .sidebar-tagline {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 9px !important;
+  letter-spacing: 0.25em !important;
+  text-transform: uppercase;
+}
+
+body.theme-trace .nav-btn {
+  border-radius: 2px !important;
+}
+
+/* Player Trace: barra ultra-fina */
+body.theme-trace .p-bar {
+  height: 2px !important;
+  border-radius: 0 !important;
+}
+
+body.theme-trace .p-title {
+  font-family: 'Space Mono', monospace !important;
+  letter-spacing: 0.06em !important;
+}
+
+
+/* ── OD — Overdrive. Zero piedade ────────────────────────────────────────── */
+body.theme-od .logo-text {
+  font-family: 'Bebas Neue', 'Impact', sans-serif !important;
+  letter-spacing: 0.08em !important;
+  font-size: 130% !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-od .view-title {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: clamp(22px, 4vw, 36px) !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-od .section-label {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.25em !important;
+  text-transform: uppercase !important;
+  color: var(--gold) !important;
+}
+
+body.theme-od .song-name {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+body.theme-od .p-title {
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 20px !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-od .album-card {
+  border-radius: 0 !important;
+  border: 1px solid var(--border) !important;
+}
+
+body.theme-od .nav-btn {
+  border-radius: 0 !important;
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+}
+
+body.theme-od .sidebar-tagline {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  letter-spacing: 0.3em !important;
+  text-transform: uppercase !important;
+}
+
+/* Glitch animado no nome/logo quando OD está ativo e música está tocando */
+body.theme-od .logo-text.glitch-active {
+  animation: od-logo-glitch 4s steps(1) infinite !important;
+}
+
+@keyframes od-logo-glitch {
+  0%, 94%, 100% { text-shadow: none; transform: none; }
+  95% { text-shadow: -2px 0 var(--gold2), 2px 0 #ff0; transform: skewX(-3deg); }
+  96% { text-shadow: 2px 0 var(--gold2), -2px 0 #0f0; transform: skewX(3deg); }
+  97% { text-shadow: none; transform: skewX(0deg); }
+  98% { text-shadow: -1px 0 var(--gold); transform: none; }
+}
+
+
+/* ── DUSK — Metal e Óxido ────────────────────────────────────────────────── */
+body.theme-dusk .logo-text {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-dusk .view-title {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(20px, 3.5vw, 30px) !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-dusk .section-label {
+  font-family: 'Share Tech Mono', monospace !important;
+  letter-spacing: 0.15em !important;
+  font-size: 9px !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-dusk .song-name {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  letter-spacing: 0.06em !important;
+}
+
+body.theme-dusk .p-title {
+  font-family: 'Rajdhani', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  letter-spacing: 0.08em !important;
+}
+
+body.theme-dusk .album-card {
+  border-radius: 2px !important;
+  border: 1px solid rgba(255,77,46,0.15) !important;
+}
+
+body.theme-dusk .nav-btn {
+  border-radius: 2px !important;
+}
+
+/* Faixa diagonal decorativa nos cards de album (Dusk) */
+body.theme-dusk .album-card::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 4px; height: 100%;
+  background: linear-gradient(to bottom, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+body.theme-dusk .album-card:hover::after { opacity: 0.6; }
+
+body.theme-dusk .sidebar-tagline {
+  font-family: 'Share Tech Mono', monospace !important;
+  letter-spacing: 0.2em !important;
+}
+
+
+/* ── EMBER — Brasa Viva ──────────────────────────────────────────────────── */
+body.theme-ember .logo-text {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
+}
+
+body.theme-ember .view-title {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: clamp(18px, 3vw, 26px) !important;
+  letter-spacing: 0.06em !important;
+}
+
+body.theme-ember .section-label {
+  font-family: 'Exo 2', sans-serif !important;
+  font-weight: 700 !important;
+  font-style: italic !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-ember .song-name {
+  font-family: 'Chakra Petch', sans-serif !important;
+  letter-spacing: 0.04em !important;
+}
+
+body.theme-ember .p-title {
+  font-family: 'Chakra Petch', sans-serif !important;
+  font-size: 17px !important;
+  letter-spacing: 0.05em !important;
+}
+
+body.theme-ember .album-card {
+  border-radius: 10px !important;
+}
+
+body.theme-ember .nav-btn {
+  border-radius: 6px !important;
+}
+
+/* Ember: pulsação leve permanente nos elementos ativos */
+body.theme-ember .song-row.playing .song-name {
+  animation: ember-name-pulse 2s ease-in-out infinite !important;
+}
+@keyframes ember-name-pulse {
+  0%, 100% { text-shadow: 0 0 4px var(--gold); }
+  50%       { text-shadow: 0 0 12px var(--gold), 0 0 20px var(--gold2); }
+}
+
+body.theme-ember .sidebar-tagline {
+  font-family: 'Exo 2', sans-serif !important;
+  font-style: italic !important;
+}
+
+
+/* ── LYRA — Constelação Interior ─────────────────────────────────────────── */
+body.theme-lyra .logo-text {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 400 !important;
+  font-style: italic !important;
+  letter-spacing: 0.12em !important;
+  font-size: 115% !important;
+}
+
+body.theme-lyra .view-title {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-weight: 300 !important;
+  font-style: italic !important;
+  font-size: clamp(22px, 4vw, 34px) !important;
+  letter-spacing: 0.08em !important;
+}
+
+body.theme-lyra .section-label {
+  font-family: 'Outfit', sans-serif !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.25em !important;
+  font-size: 9px !important;
+  text-transform: uppercase !important;
+}
+
+body.theme-lyra .song-name {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-size: 16px !important;
+  font-style: italic !important;
+  letter-spacing: 0.04em !important;
+}
+
+body.theme-lyra .p-title {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-size: 20px !important;
+  font-style: italic !important;
+  letter-spacing: 0.06em !important;
+  font-weight: 400 !important;
+}
+
+body.theme-lyra .album-card {
+  border-radius: 16px !important;
+}
+
+body.theme-lyra .nav-btn {
+  border-radius: 20px !important;
+}
+
+/* Lyra: halo de glow suave nos cards */
+body.theme-lyra .album-card:hover {
+  box-shadow:
+    0 20px 60px rgba(0,180,255,0.12),
+    0 0 0 1px rgba(0,180,255,0.15) !important;
+}
+
+body.theme-lyra .sidebar-tagline {
+  font-family: 'Cormorant Garamond', serif !important;
+  font-style: italic !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.15em !important;
+}
+
+/* Lyra: song rows têm espaçamento extra e feel etéreo */
+body.theme-lyra .song-row {
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  border-radius: 12px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMAÇÕES DE ENTRADA DAS VIEWS (definidas como base aqui,
+   o JS injeta a versão específica por personagem)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.char-design-enter {
+  animation-fill-mode: both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WATERMARK (#char-watermark criado pelo JS)
+   ═══════════════════════════════════════════════════════════════════════════ */
+#char-watermark {
+  position: fixed;
+  bottom: -20px;
+  right: -10px;
+  font-size: clamp(60px, 12vw, 120px);
+  font-weight: 900;
+  color: var(--gold);
+  opacity: 0.025;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  line-height: 1;
+  text-transform: uppercase;
+  transition: all 0.6s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INDICADOR DE PERSONAGEM ATIVO (mini badge na topbar)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Badge que aparece ao lado do nome do personagem indicando "estilo ativo" */
+.char-design-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--char-radius-btn, 4px);
+  transition: all 0.4s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVO — mobile: reduz intensidade dos efeitos
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  #char-watermark {
+    font-size: clamp(40px, 20vw, 80px);
+    bottom: 80px; /* acima do player mobile */
+    opacity: 0.02;
+  }
+
+  /* Em mobile, reduz animações complexas */
+  body.theme-od::before,
+  body.theme-ember::before,
+  body.theme-lyra::before {
+    display: none; /* remove texturas em mobile para performance */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-design-enter { animation: none !important; }
+  body.theme-ember .song-row.playing .song-name { animation: none !important; }
+  body.theme-od .logo-text.glitch-active { animation: none !important; }
+  body.theme-ember::before { animation: none !important; }
+  body.theme-lyra::before  { animation: none !important; }
+}

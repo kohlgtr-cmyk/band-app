@@ -175,15 +175,15 @@ const _CHARACTERS = [
 // Personagem ativo — lido pela pulsação neon
 let _currentChar = null;
 
-function _charApplyTheme(char) {
+function _charApplyTheme_ORIGINAL(char) {
   const root    = document.documentElement;
   const sidebar = document.getElementById('sidebar');
 
-  // Cores accent
   root.style.setProperty('--gold',     char.accent);
   root.style.setProperty('--gold2',    char.accent2);
   root.style.setProperty('--gold-dim', char.glow);
   root.style.setProperty('--border',   char.border);
+
 
   // Fundos por personagem — só aplica se NÃO estiver offline
   // (offline-theme tem !important no CSS que já sobrescreve, mas
@@ -217,6 +217,18 @@ function _charApplyTheme(char) {
   _neonPulseUpdate();
 
   try { localStorage.setItem('echodome_character', char.id); } catch(_) {}
+  // Aplica sistema de design completo (tipografia, radius, texturas, etc.)
+   if (window.CharDesign) window.CharDesign.apply(char.id);
+  // ══════════════════════════════════════════════════════
+// PASSO 4 (OPCIONAL) — Glitch no logo para OD
+// ══════════════════════════════════════════════════════
+   const logoEl = document.querySelector('.logo-text');
+   if (logoEl) {
+     logoEl.classList.toggle('glitch-active', char.id === 'od');
+       }
+//
+
+
 }
 
 // Injeta @keyframes com a cor exata do personagem ativo
@@ -698,6 +710,12 @@ function showView(name, btn) {
   if (name === 'gallery') renderGallery();
   if (name === 'members') renderMembersGrid();
   closeSidebar();
+  // No final de showView(), após a view ser exibida, adicione:
+ // Anima entrada da nova view com o estilo do personagem ativo
+   if (window.CharDesign) {
+     requestAnimationFrame(() => window.CharDesign.triggerEnter());
+   }
+
 }
 
 function syncMenuAria() {
