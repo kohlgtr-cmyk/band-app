@@ -175,7 +175,7 @@ const _CHARACTERS = [
 // Personagem ativo — lido pela pulsação neon
 let _currentChar = null;
 
-function _charApplyTheme_ORIGINAL(char) {
+function _charApplyTheme(char) {
   const root    = document.documentElement;
   const sidebar = document.getElementById('sidebar');
 
@@ -319,7 +319,7 @@ function _mountCharacterPicker() {
   });
 }
 
-// _charApplyTheme — definida acima (versão completa com fundos)
+// _charApplyTheme — definida acima (versão completa com fundos, backgrounds e CharDesign)
 
 function _charBuildMenu(selected) {
   const menu = document.getElementById('charMenu');
