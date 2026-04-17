@@ -11,6 +11,8 @@ let currentAlbumId      = null;
 let lyricsOpen          = false;
 let aboutPanelOpen      = false;
 let galleryLightboxOpen = false;
+let _lbList  = [];
+let _lbIndex = 0;
 let progressBarDragging = false;
 let sleepTimer          = null;
 let wakeLock            = null;
@@ -670,21 +672,52 @@ function renderGallery() {
   });
 }
 
-function openGalleryLightbox(index) {
-  const list = (typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos)) ? galleryPhotos : [];
-  const item = list[index];
+function _lbRender(animate) {
+  const item = _lbList[_lbIndex];
   if (!item) return;
-  const lb  = document.getElementById('galleryLightbox');
   const img = document.getElementById('galleryLightboxImg');
   const cap = document.getElementById('galleryLightboxCaption');
-  img.src = item.src;
-  img.alt = item.alt || item.caption || '';
-  cap.textContent = item.caption || '';
-  cap.style.display = item.caption ? 'block' : 'none';
+  const ttl = document.getElementById('galleryLightboxTitle');
+  const ctr = document.getElementById('galleryLightboxCounter');
+
+  const apply = () => {
+    img.src = item.src;
+    img.alt = item.alt || item.caption || '';
+    if (cap) { cap.textContent = item.caption || ''; cap.style.display = item.caption ? 'block' : 'none'; }
+    if (ttl) { ttl.textContent = item.title || item.alt || ''; ttl.style.display = ttl.textContent ? '' : 'none'; }
+    if (ctr) ctr.textContent = `${_lbIndex + 1} / ${_lbList.length}`;
+  };
+
+  if (animate) {
+    img.style.transition = 'opacity 0.15s, transform 0.15s';
+    img.style.opacity    = '0';
+    img.style.transform  = 'scale(0.97)';
+    setTimeout(() => {
+      apply();
+      img.style.opacity   = '1';
+      img.style.transform = 'scale(1)';
+    }, 150);
+  } else {
+    apply();
+  }
+}
+
+function openGalleryLightbox(index) {
+  _lbList  = (typeof galleryPhotos !== 'undefined' && Array.isArray(galleryPhotos)) ? galleryPhotos : [];
+  _lbIndex = index || 0;
+  if (!_lbList[_lbIndex]) return;
+  _lbRender(false);
+  const lb = document.getElementById('galleryLightbox');
   lb.classList.add('open');
   lb.setAttribute('aria-hidden', 'false');
   galleryLightboxOpen = true;
   document.body.style.overflow = 'hidden';
+}
+
+function galleryLightboxNav(dir) {
+  if (!_lbList.length) return;
+  _lbIndex = (_lbIndex + dir + _lbList.length) % _lbList.length;
+  _lbRender(true);
 }
 
 function closeGalleryLightbox() {
@@ -1480,6 +1513,7 @@ window.toggleDownload       = toggleDownload;
 window.downloadAllSongs     = downloadAllSongs;
 window.openGalleryLightbox  = openGalleryLightbox;
 window.closeGalleryLightbox = closeGalleryLightbox;
+window.galleryLightboxNav   = galleryLightboxNav;
 window.setVolume            = setVolume;
 window.toggleSleepTimer     = toggleSleepTimer;
 window.toggleVisualizer     = toggleVisualizer;
