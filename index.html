@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="css/members.css" />
   <link rel="stylesheet" href="css/style.css?v=51" />
   <link rel="stylesheet" href="css/character-design-system.css">
+  <link rel="stylesheet" href="gallery-grid.css">
+  <link rel="stylesheet" href="gallery-lightbox.css">
 </head>
 <body>
 
@@ -126,6 +128,7 @@
         <p class="view-subtitle">Palco, ensaio e bastidores.</p>
         <div class="section-divider"></div>
         <div class="gallery-grid" id="galleryGrid"></div>
+        <div class="gallery-container"></div>
       </div>
 
       <!-- MEMBROS -->
@@ -357,16 +360,12 @@
   </div>
 
   <!-- ═══ SCRIPTS — ordem importa ═══ -->
-  <!-- 1. Dados (albums, songs, BAND_NAME) -->
-  <script src="js/data.js?v=51"></script>
-  <!-- 2. Galeria (galleryPhotos) -->
-  <script src="js/gallery.js?v=51"></script>
-  <!-- 3. Membros da banda (BAND_MEMBERS) -->
-  <script src="js/members.js?v=51"></script>
-  <!-- 4. Visualizador (window.Visualizer) -->
-  <script src="js/modules/visualizer.js?v=51"></script>
-  <!-- 4. App principal — NÃO usa type="module" para ter acesso ao window global -->
-  <script src="js/app.js?v=51"></script>
-  <script src="js/character-design-system.js"></script>
+<script src="js/data.js?v=51"></script>
+<script src="js/gallery.js?v=51"></script>  <!-- aqui define galleryPhotos -->
+<script src="js/members.js?v=51"></script>
+<script src="js/modules/visualizer.js?v=51"></script>
+<script src="js/app.js?v=51"></script>
+<script src="js/character-design-system.js"></script>
+<script src="gallery-lightbox.js"></script>
 </body>
 </html>
