@@ -372,7 +372,7 @@ const galleryPhotos = [
 
   // ── SHOW ───────────────────────────────────────────────
   {
-    src: 'assets/imagens/gallery/show.png',
+    src: '/assets/imagens/gallery/show.png',
     alt: 'Show',
     title: 'Show',
     caption: 'Show · 2026',
